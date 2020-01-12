@@ -7,6 +7,8 @@ PyYAML,
 
 commentjson
 
+---------------------
+
 Set the configuration inside the script, to your needs!
 AND remember to get the list.peers.yaml too, which includes all known peers
 
