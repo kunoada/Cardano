@@ -3,7 +3,7 @@
 ## update_trusted_peers
 Dependencies needed;
 
-PyYAML,
+PyYAML
 
 commentjson
 
