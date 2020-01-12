@@ -10,6 +10,7 @@ delay = 0
 timeout = 3
 config_path = 'stakepool-config.yaml'
 peers_path = 'list_peers.yaml'
+output_format = 'json'  # set the file format wished as an output - 'yaml' | 'json'
 
 
 def isOpen(ip, port):
@@ -45,7 +46,11 @@ with open(peers_path, 'r') as stream:
 
 # Read current stakepool configuration file
 with open(config_path, 'r') as data_file:
-    data = commentjson.load(data_file)
+    # yaml.safe_load, should be able to parse both yaml and json format!
+    try:
+        data = yaml.safe_load(data_file)
+    except yaml.YAMLError as exc:
+        print("Invalid format!")
 
 # Delete everything in 'trusted_peers'
 del data['p2p']['trusted_peers'][0 : len(data['p2p']['trusted_peers'])]
@@ -66,4 +71,7 @@ for trusted_peer in trusted_peers:
 
 # Overwrite current stakepool config with the new update list of trusted peers
 with open(config_path, 'w') as data_file:
-    data = commentjson.dump(data, data_file)
+    if output_format is 'json':
+        data = commentjson.dump(data, data_file)
+    elif output_format is 'yaml':
+        data = yaml.dump(data, data_file)
