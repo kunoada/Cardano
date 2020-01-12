@@ -26,7 +26,7 @@ systemctl start jormungandr.service
   
 The time it takes to run this script in worst case (If no peers are responding) would be 
 
-timeout*retry*delay*n_peers
+timeout\*retry\*delay*n_peers
 
 As default there will only be one try, and zero delay, and a timeout of three.
 In this case it would therefore be;
