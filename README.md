@@ -2,7 +2,9 @@
 
 ## update_trusted_peers
 Dependencies needed;
-PyYAML
+
+PyYAML,
+
 commentjson
 
 Set the configuration inside the script, to your needs!
