@@ -19,7 +19,7 @@ As an example from a restart script if jormungandr has failed and need a restart
 
 systemctl stop jormungandr.service
 
-<RUN update_trusted_peers>
+\<RUN update_trusted_peers\>
   
 systemctl start jormungandr.service
   
