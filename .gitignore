@@ -1,2 +1,4 @@
 .idea
-stakepool-config*
+
+# Project update_truset peers
+update_trusted_peers/stakepool-config*
