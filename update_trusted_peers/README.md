@@ -1,6 +1,4 @@
-# Cardano
-
-## update_trusted_peers
+# update_trusted_peers
 Handles both yaml and json format!
 ### Dependencies needed;
 - PyYAML
