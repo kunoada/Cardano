@@ -1,6 +1,7 @@
 # Cardano
 
 ## update_trusted_peers
+Handles both yaml and json format!
 ### Dependencies needed;
 - PyYAML
 - commentjson
@@ -8,7 +9,7 @@
 ---------------------
 
 Set the configuration inside the script, to your needs!
-AND remember to get the list.peers.yaml too, which includes all known peers
+AND remember to get the list_peers.yaml too, which includes all known peers
 
 I would recommend to use this script as a step when restarting your jormungandr node.
 
