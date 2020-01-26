@@ -1,4 +1,17 @@
+# Pycharm
 .idea
 
-# Project update_truset peers
-update_trusted_peers/stakepool-config*
+# update_trused peers
+update_trusted_peers/venv
+update_trusted_peers/.idea
+
+# jormungandr_controller
+jormungandr_controller/venv
+jormungandr_controller/.idea
+
+# test
+jcli.exe
+jormungandr.exe
+jormungandr-v*
+storage*
+test_documents*
