@@ -5,7 +5,7 @@ The jormungandr controller is automating all the dirty work a stakepool operator
 - Starts x amount of nodes
 - Based on a invertal of x seconds it will make sure the healthiest node is the leader
 - Based on a invertal of x seconds it will print out the status of all nodes 
-![Image of status update](https://raw.githubusercontent.com/kunoada/Cardano/master/jormungandr_controller/jormungandr_controller_stat_update.PNG)
+[Image of status update](https://raw.githubusercontent.com/kunoada/Cardano/master/jormungandr_controller/jormungandr_controller_stat_update.PNG)
 
 ### Dependencies needed;
 - PyYAML
