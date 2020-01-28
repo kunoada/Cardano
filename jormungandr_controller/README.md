@@ -11,6 +11,7 @@ The jormungandr controller is automating all the dirty work a stakepool operator
 ### Dependencies needed;
 - PyYAML
 - tabulate
+- requests
 
 ---------------------
 
