@@ -18,8 +18,8 @@ node_secret_path = '../test_documents/node-secret.yaml'
 number_of_nodes = 3
 # Pooltool sendmytip setup #
 URL = "https://api.pooltool.io/v0/sharemytip"
-pool_id = '778f18a9c3a9b8dc03146ee9d71afc577bb63fd2f9328261b9d2c23d9b15c14c'
-user_id = '45e0a4ae-fa4d-436b-814f-f213c4eb5eb8'
+pool_id = '778f18a9c3a9b8dc03146ee9d71afc577bb63fd2f9'
+user_id = ''
 # All intervals are in seconds
 LEADER_ELECTION_INTERVAL = 60
 STATS_UPDATE_INTERVAL = 10
