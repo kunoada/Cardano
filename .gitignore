@@ -11,6 +11,7 @@ update_trusted_peers/.idea
 # jormungandr_controller
 jormungandr_controller/venv
 jormungandr_controller/.idea
+*my_config.json
 
 # test
 jcli.exe

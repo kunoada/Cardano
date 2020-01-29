@@ -9,7 +9,7 @@ import yaml
 import os
 
 # TODO: Put configuration in a config file
-config = json.load(open('config.json' , 'r'))
+config = json.load(open('my_config.json' , 'r'))
 
 #### Configuration ####
 jcli_call_format = config['Configuration']['jcli_call_format']
@@ -54,6 +54,7 @@ def node_init(node_number):
     nodes[f'node_{node_number}']['lastBlockHeight'] = 0
     nodes[f'node_{node_number}']['lastKnownBlockHeightStuckCheck'] = 0
     nodes[f'node_{node_number}']['lastBlockHash'] = 0
+    nodes[f'node_{node_number}']['uptime'] = 0
     nodes[f'node_{node_number}']['state'] = ''
 
 
@@ -105,17 +106,18 @@ def update_nodes_info():
                 if nodes[f'node_{i}']['lastBlockHeight'] < int(node_stats['lastBlockHeight']):
                     nodes[f'node_{i}']['lastBlockHeight'] = int(node_stats['lastBlockHeight'])
                     nodes[f'node_{i}']['timeSinceLastBlock'] = int(time.time())
-                nodes[f'node_{i}']['lastBlockHash'] = int(node_stats['lastBlockHash'])
+                nodes[f'node_{i}']['lastBlockHash'] = node_stats['lastBlockHash']
                 nodes[f'node_{i}']['state'] = 'Running'
+                nodes[f'node_{i}']['uptime'] = node_stats['uptime']
 
             elif node_stats['state'] == 'Bootstrapping':
                 nodes[f'node_{i}']['lastBlockHeight'] = 0
-                nodes[f'node_{i}']['lastBlockHash'] = 0
+                nodes[f'node_{i}']['lastBlockHash'] = ''
                 nodes[f'node_{i}']['state'] = 'Bootstrapping'
 
         except subprocess.CalledProcessError as e:
             nodes[f'node_{i}']['lastBlockHeight'] = 0
-            nodes[f'node_{i}']['lastBlockHash'] = 0
+            nodes[f'node_{i}']['lastBlockHash'] = ''
             nodes[f'node_{i}']['state'] = 'Starting'
             continue
 
