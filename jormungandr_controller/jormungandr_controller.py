@@ -22,7 +22,8 @@ pool_id = '778f18a9c3a9b8dc03146ee9d71afc577bb63fd2f9'
 user_id = ''
 # All intervals are in seconds
 LEADER_ELECTION_INTERVAL = 60
-STATS_UPDATE_INTERVAL = 10
+TABLE_UPDATE_INTERVAL = 10
+UPDATE_NODES_INTERVAL = 10
 STUCK_CHECK_INTERVAL = 30
 LAST_SYNC_RESTART = 300
 SEND_MY_TIP_INTERVAL = 30
@@ -35,7 +36,23 @@ genesis_hash = open(genesis_hash_path, 'r').read().replace('\n', '')  # Replace 
 stakepool_config = json.load(open(stakepool_config_path, 'r'))
 tmp_config_file_path = 'tmp.config'
 current_leader = -1
+pooltoolmax = 0
 nodes = {}
+
+
+def node_init(node_number):
+    global nodes
+    nodes[f'node_{node_number}'] = {}
+    # Start a jormungandr process
+    nodes[f'node_{node_number}']['process_id'] = subprocess.Popen(
+        [jormungandr_call_format, '--genesis-block-hash', genesis_hash, '--config', tmp_config_file_path],
+        stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)  # TODO: node should start as leader??? maybe..
+    # Give a timestamp when process is born
+    nodes[f'node_{node_number}']['timeSinceLastBlock'] = int(time.time())
+    nodes[f'node_{node_number}']['lastBlockHeight'] = 0
+    nodes[f'node_{node_number}']['lastKnownBlockHeightStuckCheck'] = 0
+    nodes[f'node_{node_number}']['lastBlockHash'] = 0
+    nodes[f'node_{node_number}']['state'] = ''
 
 
 def start_node(node_number):
@@ -56,17 +73,10 @@ def start_node(node_number):
         # Save in temp config file
         json.dump(stakepool_config_temp, tmp_config_file)
 
-    nodes[f'node_{node_number}'] = {}
-    # Start a jormungandr process
-    nodes[f'node_{node_number}']['process_id'] = subprocess.Popen(
-        [jormungandr_call_format, '--genesis-block-hash', genesis_hash, '--config', tmp_config_file_path],
-        stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)  # TODO: node should start as leader??? maybe..
-    # Give a timestamp when process is born
-    nodes[f'node_{node_number}']['timeSinceLastBlock'] = int(time.time())
-    nodes[f'node_{node_number}']['lastBlockHeight'] = 0
+    node_init(node_number)
     print(f'Starting node {node_number}...')
 
-    time.sleep(10)
+    time.sleep(5)
     os.remove(tmp_config_file_path)
 
 
@@ -76,9 +86,43 @@ def start_nodes():
         start_node(i)
 
 
+def update_nodes_info():
+    threading.Timer(UPDATE_NODES_INTERVAL , update_nodes_info).start()
+
+    global nodes
+    ip_address , port = stakepool_config['rest']['listen'].split(':')
+
+    for i in range(number_of_nodes):
+        try:
+            node_stats = yaml.safe_load(subprocess.check_output(
+                [jcli_call_format, 'rest', 'v0', 'node', 'stats', 'get', '-h',
+                 f'http://{ip_address}:{int(port) + i}/api']).decode(
+                'utf-8'))
+
+            if node_stats['state'] == 'Running':
+                if nodes[f'node_{i}']['lastBlockHeight'] < int(node_stats['lastBlockHeight']):
+                    nodes[f'node_{i}']['lastBlockHeight'] = int(node_stats['lastBlockHeight'])
+                    nodes[f'node_{i}']['timeSinceLastBlock'] = int(time.time())
+                nodes[f'node_{i}']['lastBlockHash'] = int(node_stats['lastBlockHash'])
+                nodes[f'node_{i}']['state'] = 'Running'
+
+            elif node_stats['state'] == 'Bootstrapping':
+                nodes[f'node_{i}']['lastBlockHeight'] = 0
+                nodes[f'node_{i}']['lastBlockHash'] = 0
+                nodes[f'node_{i}']['state'] = 'Bootstrapping'
+
+        except subprocess.CalledProcessError as e:
+            nodes[f'node_{i}']['lastBlockHeight'] = 0
+            nodes[f'node_{i}']['lastBlockHash'] = 0
+            nodes[f'node_{i}']['state'] = 'Starting'
+            continue
+
+
 # ./jcli rest v0 leaders logs get -h http://127.0.0.1:3100/api
 # ./jcli rest v0 node stats get -h http://127.0.0.1:3100/api
 def leader_election():
+    threading.Timer(LEADER_ELECTION_INTERVAL, leader_election).start()
+
     global current_leader
     ip_address, port = stakepool_config['rest']['listen'].split(':')
 
@@ -87,44 +131,25 @@ def leader_election():
 
     # Find healthiest node, (highest node)
     for i in range(number_of_nodes):
-        try:
-            node_stats = yaml.safe_load(subprocess.check_output(
-                [jcli_call_format, 'rest', 'v0', 'node', 'stats', 'get', '-h',
-                 f'http://{ip_address}:{port}/api']).decode(
-                'utf-8'))
-            if 'lastBlockHeight' in node_stats:
-                lastBlockHeight = int(node_stats['lastBlockHeight'])
-            elif 'state' in node_stats:
-                if node_stats['state'] == 'Bootstrapping':
-                    continue
-        except subprocess.CalledProcessError as e:
-            port = int(port) + 1
-            continue
 
-        if isinstance(lastBlockHeight, int):
-            if highest_blockheight < lastBlockHeight:
-                highest_blockheight = lastBlockHeight
-                healthiest_node = i
-
-        port = int(port) + 1
+        if highest_blockheight < nodes[f'node_{i}']['lastBlockHeight']:
+            highest_blockheight = nodes[f'node_{i}']['lastBlockHeight']
+            healthiest_node = i
 
     if healthiest_node < 0:
         return
 
     if current_leader != healthiest_node:
         print(f'Changing leader from {current_leader} to {healthiest_node}')
-        # Reset port to default
-        port = port - number_of_nodes
         # Select leader
         subprocess.run([jcli_call_format, 'rest', 'v0', 'leaders', 'post', '-f', node_secret_path, '-h',
-                        f'http://{ip_address}:{port + healthiest_node}/api'])
-        # Delete old leader
-        subprocess.run([jcli_call_format, 'rest', 'v0', 'leaders', 'delete', '1', '-h',
-                        f'http://{ip_address}:{port + current_leader}/api'])
+                        f'http://{ip_address}:{int(port) + healthiest_node}/api'])
+        if not current_leader < 0:
+            # Delete old leader
+            subprocess.run([jcli_call_format, 'rest', 'v0', 'leaders', 'delete', '1', '-h',
+                            f'http://{ip_address}:{int(port) + current_leader}/api'])
         # Update current leader
         current_leader = healthiest_node
-
-    threading.Timer(LEADER_ELECTION_INTERVAL, leader_election).start()
 
 
 def is_nodes_running():
@@ -134,35 +159,21 @@ def is_nodes_running():
         try:
             output = yaml.safe_load(subprocess.check_output(
                 [jcli_call_format, 'rest', 'v0', 'node', 'stats', 'get', '-h',
-                 f'http://{ip_address}:{port}/api']).decode('utf-8'))
-            if output['state'] == 'Running':
+                 f'http://{ip_address}:{int(port) + i}/api']).decode('utf-8'))
+            if output['state'] == 'Bootstrapping':
                 return i
         except subprocess.CalledProcessError as e:
             pass
-
-        port = int(port) + 1
 
     return -1
 
 
 def stuck_check():
-    ip_address, port = stakepool_config['rest']['listen'].split(':')
+    threading.Timer(STUCK_CHECK_INTERVAL, stuck_check).start()
+
+    global nodes
 
     for i in range(number_of_nodes):
-        try:
-            stats = yaml.safe_load(subprocess.check_output(
-                [jcli_call_format, 'rest', 'v0', 'node', 'stats', 'get', '-h',
-                 f'http://{ip_address}:{port}/api']).decode(
-                'utf-8'))
-
-            if stats['state'] == 'Running':
-                if int(nodes[f'node_{i}']['lastBlockHeight']) < int(stats['lastBlockHeight']):
-                    nodes[f'node_{i}']['lastBlockHeight'] = stats['lastBlockHeight']
-                    nodes[f'node_{i}']['timeSinceLastBlock'] = int(time.time())
-                    nodes[f'node_{i}']['lastBlockHash'] = stats['lastBlockHash']
-
-        except subprocess.CalledProcessError as e:
-            pass
 
         if int(time.time()) - nodes[f'node_{i}']['timeSinceLastBlock'] > LAST_SYNC_RESTART:
             print(f'Node {i} is restarting due to out of sync or stuck in bootstrapping')
@@ -173,78 +184,58 @@ def stuck_check():
             # Start a jormungandr process
             start_node(i)
 
-        port = int(port) + 1
 
-    threading.Timer(STUCK_CHECK_INTERVAL, stuck_check).start()
+def table_update():
+    threading.Timer(TABLE_UPDATE_INTERVAL , table_update).start()
 
-
-def stats_update():
     headers = ['Node', 'State', 'Block height', 'pooltoolmax', 'Delta', 'Uptime', 'Time since last sync',
                'Current leader']
-    ip_address, port = stakepool_config['rest']['listen'].split(':')
     data = []
 
     for i in range(number_of_nodes):
         temp_list = []
-        try:
-            stats = yaml.safe_load(subprocess.check_output(
-                [jcli_call_format, 'rest', 'v0', 'node', 'stats', 'get', '-h',
-                 f'http://{ip_address}:{port}/api']).decode(
-                'utf-8'))
+        temp_list.extend([f'Node {i}' , nodes[f'node_{i}']['state'] , nodes[f'node_{i}']['lastBlockHeight'] , pooltoolmax ,
+                          nodes[f'node_{i}']['lastBlockHeight'] - pooltoolmax , nodes[f'node_{i}']['uptime'] ,
+                          int(time.time()) - nodes[f'node_{i}']['timeSinceLastBlock']])
 
-            if stats['state'] == 'Running':
-                temp_list.extend([f'Node {i}', stats['state'], stats['lastBlockHeight'], pooltoolmax,
-                                  int(stats['lastBlockHeight']) - pooltoolmax, stats['uptime'],
-                                  int(time.time()) - nodes[f'node_{i}']['timeSinceLastBlock']])
-            elif stats['state'] == 'Bootstrapping':
-                temp_list.extend([f'Node {i}', stats['state'], '?', '?', '?', '?',
-                                  int(time.time()) - nodes[f'node_{i}']['timeSinceLastBlock']])
+        if i == current_leader:
+            temp_list.append(1)
+        else:
+            temp_list.append(0)
 
-            if i == current_leader:
-                temp_list.append(1)
-            else:
-                temp_list.append(0)
-
-        except subprocess.CalledProcessError as e:
-            temp_list.extend([f'Node {i}', 'Starting', '?', '?', '?', '?', '?', '0'])
-            pass
-
-        port = int(port) + 1
         data.append(temp_list)
 
     # clear()
     print(tabulate(data, headers))
-    threading.Timer(STATS_UPDATE_INTERVAL, stats_update).start()
-
-
-pooltoolmax = 0
 
 
 def send_my_tip():
-    global pooltoolmax
-    # lastPoolID =$(cli block ${lastBlockHash} get | cut -c169-232)
-    ip_address, port = stakepool_config['rest']['listen'].split(':')
-    try:
-        stats = yaml.safe_load(subprocess.check_output(
-            [jcli_call_format, 'rest', 'v0', 'block', nodes[f'node_{current_leader}']['lastBlockHash'], 'get', '-h',
-             f'http://{ip_address}:{int(port) + current_leader}/api']).decode(
-            'utf-8'))
-        #test = subprocess.check_output([f'echo "{stats}"', '|', 'cut -c169-232'], shell=True)
-        PARAMS = {'poolid': pool_id, 'userid': user_id, 'genesispref': genesis_hash,
-                  'mytip': nodes[f'node_{current_leader}']['lastBlockHeight'],
-                  'lasthash': nodes[f'node_{current_leader}']['lastBlockHash'], 'lastpool': stats}
-        # sending get request and saving the response as response object
-        r = requests.get(url=URL, params=PARAMS)
-
-        # extracting data in json format
-        data = r.json()
-        if data['success']:
-            pooltoolmax = int(data['pooltoolmax'])
-
-    except subprocess.CalledProcessError as e:
-        pass
-
     threading.Timer(SEND_MY_TIP_INTERVAL, send_my_tip).start()
+
+    global pooltoolmax
+
+    if not current_leader < 0:
+        # lastPoolID =$(cli block ${lastBlockHash} get | cut -c169-232)
+        ip_address, port = stakepool_config['rest']['listen'].split(':')
+        try:
+            stats = yaml.safe_load(subprocess.check_output(
+                [jcli_call_format, 'rest', 'v0', 'block', nodes[f'node_{current_leader}']['lastBlockHash'], 'get', '-h',
+                 f'http://{ip_address}:{int(port) + current_leader}/api']).decode(
+                'utf-8'))
+            #test = subprocess.check_output([f'echo "{stats}"', '|', 'cut -c169-232'], shell=True)
+            PARAMS = {'poolid': pool_id, 'userid': user_id, 'genesispref': genesis_hash,
+                      'mytip': nodes[f'node_{current_leader}']['lastBlockHeight'],
+                      'lasthash': nodes[f'node_{current_leader}']['lastBlockHash'], 'lastpool': stats}
+            # sending get request and saving the response as response object
+            r = requests.get(url=URL, params=PARAMS)
+
+            # extracting data in json format
+            data = r.json()
+            if data['success']:
+                pooltoolmax = int(data['pooltoolmax'])
+
+        except subprocess.CalledProcessError as e:
+            pass
 
 
 def clear():
@@ -253,16 +244,17 @@ def clear():
 
 
 def main():
-    nodes_running = -1
+    # nodes_running = -1
 
     start_nodes()
-    # Wait until at least one node is up and running
-    while 0 > nodes_running:
-        time.sleep(60)
-        nodes_running = is_nodes_running()
+    # Wait until at least one node is up and running #TODO: Is this really needed?
+    # while 0 > nodes_running:
+    #     time.sleep(60)
+    #     nodes_running = is_nodes_running()
 
+    update_nodes_info()
     leader_election()
-    stats_update()
+    table_update()
     stuck_check()
     send_my_tip()
 

@@ -1,6 +1,9 @@
 # Pycharm
 .idea
 
+# Python
+venv
+
 # update_trused peers
 update_trusted_peers/venv
 update_trusted_peers/.idea
