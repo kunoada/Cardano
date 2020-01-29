@@ -8,6 +8,9 @@ The jormungandr controller is automating all the dirty work a stakepool operator
 
 ![Image of status update](https://raw.githubusercontent.com/kunoada/Cardano/master/jormungandr_controller/jormungandr_controller_stat_update.PNG)
 
+- Stuck check, restart node x, if it haven't received a new blockheight within y seconds
+- Sendmytip to pooltool from the healthiest node (leader node)
+
 ### Dependencies needed;
 - PyYAML
 - tabulate
