@@ -1,0 +1,23 @@
+{
+    "Configuration": {
+        "jcli_call_format": "../jcli",
+        "jormungandr_call_format": "../jormungandr",
+        "stakepool_config_path": "../test_documents/stakepool-config.yaml",
+        "node_secret_path": "../test_documents/node-secret.yaml",
+		"genesis_hash": "8e4d2a343f3dcf9330ad9035b3e8d168e6728904262f2c434a4f8f934ec7b676",
+        "number_of_nodes": 3
+    },
+    "PooltoolSetup": {
+        "url": "https://api.pooltool.io/v0/sharemytip",
+        "pool_id": "",
+        "user_id": ""
+    },
+    "Intervals": {
+        "LEADER_ELECTION": 60,
+        "TABLE_UPDATE": 10,
+        "UPDATE_NODES": 10,
+        "STUCK_CHECK": 30,
+        "LAST_SYNC_RESTART": 300,
+        "SEND_MY_TIP": 30
+    }
+}

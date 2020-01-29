@@ -9,6 +9,8 @@ import yaml
 import os
 
 # TODO: Put configuration in a config file
+config = json.load(open('config.json', 'r'))
+
 #### Configuration ####
 jcli_call_format = '../jcli'
 jormungandr_call_format = '../jormungandr'
