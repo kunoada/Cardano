@@ -219,29 +219,31 @@ def send_my_tip():
 
     global pooltoolmax
 
-    if not current_leader < 0:
-        # lastPoolID =$(cli block ${lastBlockHash} get | cut -c169-232)
-        ip_address , port = stakepool_config['rest']['listen'].split(':')
-        try:
-            stats = yaml.safe_load(subprocess.check_output(
-                [jcli_call_format , 'rest' , 'v0' , 'block' , nodes[f'node_{current_leader}']['lastBlockHash'] , 'get' ,
-                 '-h' ,
-                 f'http://{ip_address}:{int(port) + current_leader}/api']).decode(
-                'utf-8'))
-            # test = subprocess.check_output([f'echo "{stats}"', '|', 'cut -c169-232'], shell=True)
-            PARAMS = {'poolid': pool_id , 'userid': user_id , 'genesispref': genesis_hash ,
-                      'mytip': nodes[f'node_{current_leader}']['lastBlockHeight'] ,
-                      'lasthash': nodes[f'node_{current_leader}']['lastBlockHash'] , 'lastpool': stats}
-            # sending get request and saving the response as response object
-            r = requests.get(url=url , params=PARAMS)
+    if current_leader < 0:
+        return
 
-            # extracting data in json format
-            data = r.json()
-            if data['success']:
-                pooltoolmax = int(data['pooltoolmax'])
+    # lastPoolID =$(cli block ${lastBlockHash} get | cut -c169-232)
+    ip_address , port = stakepool_config['rest']['listen'].split(':')
+    try:
+        stats = yaml.safe_load(subprocess.check_output(
+            [jcli_call_format , 'rest' , 'v0' , 'block' , nodes[f'node_{current_leader}']['lastBlockHash'] , 'get' ,
+             '-h' ,
+             f'http://{ip_address}:{int(port) + current_leader}/api']).decode(
+            'utf-8'))
+        # test = subprocess.check_output([f'echo "{stats}"', '|', 'cut -c169-232'], shell=True)
+        PARAMS = {'poolid': pool_id , 'userid': user_id , 'genesispref': genesis_hash ,
+                  'mytip': nodes[f'node_{current_leader}']['lastBlockHeight'] ,
+                  'lasthash': nodes[f'node_{current_leader}']['lastBlockHash'] , 'lastpool': stats}
+        # sending get request and saving the response as response object
+        r = requests.get(url=url , params=PARAMS)
 
-        except subprocess.CalledProcessError as e:
-            pass
+        # extracting data in json format
+        data = r.json()
+        if data['success']:
+            pooltoolmax = int(data['pooltoolmax'])
+
+    except subprocess.CalledProcessError as e:
+        pass
 
 
 # This method is based on
@@ -249,9 +251,18 @@ def send_my_tip():
 def check_transition():
     threading.Timer(TRANSITION_CHECK_INTERVAL , check_transition).start()
 
+    if current_leader < 0:
+        return
+
     ip_address , port = stakepool_config['rest']['listen'].split(':')
-    settings = yaml.safe_load(subprocess.check_output(
-        [jcli_call_format , 'rest' , 'v0' , 'settings' , 'get' , '-h' , f'http://{ip_address}:{int(port)}/api']))
+
+    try:
+        settings = yaml.safe_load(subprocess.check_output(
+            [jcli_call_format , 'rest' , 'v0' , 'settings' , 'get' , '-h' , f'http://{ip_address}:{int(port) + current_leader}/api']))
+
+    except subprocess.CalledProcessError as e:
+        return
+
     slot_duration = int(settings['slotDuration'])
     slots_per_epoch = int(settings['slotsPerEpoch'])
 
@@ -295,6 +306,7 @@ def main():
     table_update()
     stuck_check()
     send_my_tip()
+    check_transition()
 
 
 if __name__ == "__main__":
