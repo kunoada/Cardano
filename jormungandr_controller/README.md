@@ -19,7 +19,7 @@ The jormungandr controller is automating all the dirty work a stakepool operator
 ### Setup
 Please use the config.json as a template to fill in your required needs. When this is set up correctly, you simply execute the script like
 
-Linux example:
+Linux example using python v3.6:
 ```python
 python3.6 jormungandr_controller.py
 ```
