@@ -274,17 +274,24 @@ def check_transition():
         print("Adding keys to all nodes for epoch transition:")
 
         for i in range(number_of_nodes):
-            subprocess.run([jcli_call_format , 'rest' , 'v0' , 'leaders' , 'post' , '-f' , node_secret_path , '-h' ,
-                            f'http://{ip_address}:{int(port) + i}/api'])
+            try:
+                subprocess.run([jcli_call_format , 'rest' , 'v0' , 'leaders' , 'post' , '-f' , node_secret_path , '-h' ,
+                                f'http://{ip_address}:{int(port) + i}/api'])
+            except subprocess.CalledProcessError as e:
+                continue
 
         # Wait until new epoch
         time.sleep(slot_duration + 10)
 
         for i in range(number_of_nodes):
-            # Delete leaders except one
-            if not i == current_leader:
-                subprocess.run([jcli_call_format , 'rest' , 'v0' , 'leaders' , 'delete' , '1' , '-h' ,
-                                f'http://{ip_address}:{int(port) + i}/api'])
+            try:
+                # Delete leaders except one
+                if not i == current_leader:
+                    subprocess.run([jcli_call_format , 'rest' , 'v0' , 'leaders' , 'delete' , '1' , '-h' ,
+                                    f'http://{ip_address}:{int(port) + i}/api'])
+
+            except subprocess.CalledProcessError as e:
+                continue
 
 
 def clear():
