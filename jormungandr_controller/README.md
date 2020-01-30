@@ -10,6 +10,7 @@ The jormungandr controller is automating all the dirty work a stakepool operator
 
 - Stuck check, restart node x, if it haven't received a new blockheight within y seconds
 - Sendmytip to pooltool from the healthiest node (leader node)
+- Failover script, all nodes are elected as leaders for an epoch transition
 
 ### Dependencies needed;
 - PyYAML
