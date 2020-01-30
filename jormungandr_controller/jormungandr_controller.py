@@ -252,12 +252,16 @@ def send_my_tip():
         pass
 
 
+is_in_transition = False
+
+
 # This method is based on
 # https://github.com/rdlrt/Alternate-Jormungandr-Testnet/blob/master/scripts/jormungandr-leaders-failover.sh
 def check_transition():
     threading.Timer(TRANSITION_CHECK_INTERVAL , check_transition).start()
+    global is_in_transition
 
-    if current_leader < 0:
+    if current_leader < 0 or is_in_transition:
         return
 
     ip_address , port = stakepool_config['rest']['listen'].split(':')
@@ -277,6 +281,7 @@ def check_transition():
     diff_epoch_end = slots_per_epoch - curr_slot
 
     if diff_epoch_end < slot_duration + 5:  # Adds a small probability of creating an adversarial fork if assigned for last 3 slots of the epoch, or first 3 slots of next epoch
+        is_in_transition = True
         print("Adding keys to all nodes for epoch transition:")
 
         for i in range(number_of_nodes):
@@ -298,6 +303,7 @@ def check_transition():
 
             except subprocess.CalledProcessError as e:
                 continue
+        is_in_transition = False
 
 
 def clear():
