@@ -33,6 +33,8 @@ or
 python jormungandr_controller.py
 ```
 
+It is **recommended** to run the script as a startup service, so the user can fully relax without any need of manual maintenance.
+
 ---------------------
 
 ## Works on
