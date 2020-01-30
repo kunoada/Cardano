@@ -16,6 +16,23 @@ The jormungandr controller is automating all the dirty work a stakepool operator
 - tabulate
 - requests
 
+### Setup
+Please use the config.json as a template to fill in your required needs. When this is set up correctly, you simply execute the script like
+
+Linux example:
+```python
+python3.6 jormungandr_controller.py
+```
+
+Windows example:
+```python
+py jormungandr_controller.py
+```
+or
+```python
+python jormungandr_controller.py
+```
+
 ---------------------
 
 ## Works on
