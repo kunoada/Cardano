@@ -145,9 +145,15 @@ def leader_election():
 
     if current_leader != healthiest_node:
         print(f'Changing leader from {current_leader} to {healthiest_node}')
-        # Select leader
-        subprocess.run([jcli_call_format , 'rest' , 'v0' , 'leaders' , 'post' , '-f' , node_secret_path , '-h' ,
-                        f'http://{ip_address}:{int(port) + healthiest_node}/api'])
+
+        try:
+            # Select leader
+            subprocess.run([jcli_call_format , 'rest' , 'v0' , 'leaders' , 'post' , '-f' , node_secret_path , '-h' ,
+                            f'http://{ip_address}:{int(port) + healthiest_node}/api'])
+        except subprocess.CalledProcessError as e:
+            print("Could not elect new leader, skipping")
+            return
+
         if not current_leader < 0:
             # Delete old leader
             subprocess.run([jcli_call_format , 'rest' , 'v0' , 'leaders' , 'delete' , '1' , '-h' ,
