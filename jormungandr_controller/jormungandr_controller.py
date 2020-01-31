@@ -6,6 +6,7 @@ import collections
 import subprocess
 import threading
 import time
+import re
 
 import requests
 import yaml
@@ -117,8 +118,10 @@ def update_nodes_info():
                     nodes[f'node_{i}']['lastReceivedBlockTime'] = node_stats['lastReceivedBlockTime']
                     if nodes[f'node_{i}']['lastReceivedBlockTime'] is not None and nodes[f'node_{i}'][
                         'lastReceivedBlockTime'] != '':
-                        nodes[f'node_{i}']['latency'] = time_between(node_stats['lastBlockTime'],
-                                                                     node_stats['lastReceivedBlockTime'])
+                        nodes[f'node_{i}']['latency'] = time_between(
+                            re.sub(r"([\+-]\d\d):(\d\d)(?::(\d\d(?:.\d+)?))?", r"\1\2\3", node_stats['lastBlockTime']),
+                            re.sub(r"([\+-]\d\d):(\d\d)(?::(\d\d(?:.\d+)?))?", r"\1\2\3",
+                                   node_stats['lastReceivedBlockTime']))
                         nodes[f'node_{i}']['last5LatencyRecords'].append(nodes[f'node_{i}']['latency'])
                         if len(list(nodes[f'node_{i}']['last5LatencyRecords'])):
                             nodes[f'node_{i}']['avgLatencyRecords'] = sum(
