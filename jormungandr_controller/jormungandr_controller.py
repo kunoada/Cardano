@@ -1,15 +1,18 @@
+import copy
+import datetime
+import json
+import os
+import collections
 import subprocess
 import threading
-import requests
-from tabulate import tabulate
-import copy
 import time
-import json
+
+import requests
 import yaml
-import os
+from tabulate import tabulate
 
 # TODO: Put configuration in a config file
-config = json.load(open('my_config.json' , 'r'))
+config = json.load(open('my_config.json', 'r'))
 
 #### Configuration ####
 jcli_call_format = config['Configuration']['jcli_call_format']
@@ -35,7 +38,7 @@ TRANSITION_CHECK_INTERVAL = config['Intervals']['TRANSITION_CHECK']
 # _________________________________________________________________________________________________________________#
 
 # !DON'T TOUCH THESE VARIABLES! #
-stakepool_config = yaml.safe_load(open(stakepool_config_path , 'r'))
+stakepool_config = yaml.safe_load(open(stakepool_config_path, 'r'))
 tmp_config_file_path = 'tmp.config'
 current_leader = -1
 pooltoolmax = 0
@@ -47,15 +50,19 @@ def node_init(node_number):
     nodes[f'node_{node_number}'] = {}
     # Start a jormungandr process
     nodes[f'node_{node_number}']['process_id'] = subprocess.Popen(
-        [jormungandr_call_format , '--genesis-block-hash' , genesis_hash , '--config' , tmp_config_file_path] ,
-        stdout=subprocess.DEVNULL , stderr=subprocess.STDOUT)  # TODO: node should start as leader??? maybe..
+        [jormungandr_call_format, '--genesis-block-hash', genesis_hash, '--config', tmp_config_file_path],
+        stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)  # TODO: node should start as leader??? maybe..
     # Give a timestamp when process is born
     nodes[f'node_{node_number}']['timeSinceLastBlock'] = int(time.time())
     nodes[f'node_{node_number}']['lastBlockHeight'] = 0
-    nodes[f'node_{node_number}']['lastKnownBlockHeightStuckCheck'] = 0
     nodes[f'node_{node_number}']['lastBlockHash'] = 0
+    nodes[f'node_{node_number}']['lastBlockTime'] = ''
+    nodes[f'node_{node_number}']['lastReceivedBlockTime'] = ''
     nodes[f'node_{node_number}']['uptime'] = 0
     nodes[f'node_{node_number}']['state'] = ''
+    nodes[f'node_{node_number}']['latency'] = 10000
+    nodes[f'node_{node_number}']['last5LatencyRecords'] = collections.deque(maxlen=5)
+    nodes[f'node_{node_number}']['avgLatencyRecords'] = 10000
 
 
 def start_node(node_number):
@@ -63,18 +70,18 @@ def start_node(node_number):
     stakepool_config_temp = copy.deepcopy(stakepool_config)
 
     # Create a temporarily file, as jormungandr require this as input
-    with open(tmp_config_file_path , 'w') as tmp_config_file:
+    with open(tmp_config_file_path, 'w') as tmp_config_file:
         # Increase port number for specific node
-        ip_address , port = stakepool_config_temp['rest']['listen'].split(':')
+        ip_address, port = stakepool_config_temp['rest']['listen'].split(':')
         stakepool_config_temp['rest']['listen'] = ip_address + ':' + str(int(port) + node_number)
         # Listen_address
-        x , ip , ip_address , comm_p , port = stakepool_config_temp['p2p']['listen_address'].split('/')
+        x, ip, ip_address, comm_p, port = stakepool_config_temp['p2p']['listen_address'].split('/')
         stakepool_config_temp['p2p']['listen_address'] = f'/{ip}/{ip_address}/{comm_p}/{int(port) + node_number}'
         # Public_address
-        x , ip , ip_address , comm_p , port = stakepool_config_temp['p2p']['public_address'].split('/')
+        x, ip, ip_address, comm_p, port = stakepool_config_temp['p2p']['public_address'].split('/')
         stakepool_config_temp['p2p']['public_address'] = f'/{ip}/{ip_address}/{comm_p}/{int(port) + node_number}'
         # Save in temp config file
-        json.dump(stakepool_config_temp , tmp_config_file)
+        json.dump(stakepool_config_temp, tmp_config_file)
 
     node_init(node_number)
     print(f'Starting node {node_number}...')
@@ -90,15 +97,15 @@ def start_nodes():
 
 
 def update_nodes_info():
-    threading.Timer(UPDATE_NODES_INTERVAL , update_nodes_info).start()
+    threading.Timer(UPDATE_NODES_INTERVAL, update_nodes_info).start()
 
     global nodes
-    ip_address , port = stakepool_config['rest']['listen'].split(':')
+    ip_address, port = stakepool_config['rest']['listen'].split(':')
 
     for i in range(number_of_nodes):
         try:
             node_stats = yaml.safe_load(subprocess.check_output(
-                [jcli_call_format , 'rest' , 'v0' , 'node' , 'stats' , 'get' , '-h' ,
+                [jcli_call_format, 'rest', 'v0', 'node', 'stats', 'get', '-h',
                  f'http://{ip_address}:{int(port) + i}/api']).decode(
                 'utf-8'))
 
@@ -106,6 +113,17 @@ def update_nodes_info():
                 if nodes[f'node_{i}']['lastBlockHeight'] < int(node_stats['lastBlockHeight']):
                     nodes[f'node_{i}']['lastBlockHeight'] = int(node_stats['lastBlockHeight'])
                     nodes[f'node_{i}']['timeSinceLastBlock'] = int(time.time())
+                    nodes[f'node_{i}']['lastBlockTime'] = node_stats['lastBlockTime']
+                    nodes[f'node_{i}']['lastReceivedBlockTime'] = node_stats['lastReceivedBlockTime']
+                    if nodes[f'node_{i}']['lastReceivedBlockTime'] is not None and nodes[f'node_{i}'][
+                        'lastReceivedBlockTime'] != '':
+                        nodes[f'node_{i}']['latency'] = time_between(node_stats['lastBlockTime'],
+                                                                     node_stats['lastReceivedBlockTime'])
+                        nodes[f'node_{i}']['last5LatencyRecords'].append(nodes[f'node_{i}']['latency'])
+                        if len(list(nodes[f'node_{i}']['last5LatencyRecords'])):
+                            nodes[f'node_{i}']['avgLatencyRecords'] = sum(
+                                list(nodes[f'node_{i}']['last5LatencyRecords'])) / len(
+                                list(nodes[f'node_{i}']['last5LatencyRecords']))
                 nodes[f'node_{i}']['lastBlockHash'] = node_stats['lastBlockHash']
                 nodes[f'node_{i}']['state'] = 'Running'
                 nodes[f'node_{i}']['uptime'] = node_stats['uptime']
@@ -125,22 +143,25 @@ def update_nodes_info():
 # ./jcli rest v0 leaders logs get -h http://127.0.0.1:3100/api
 # ./jcli rest v0 node stats get -h http://127.0.0.1:3100/api
 def leader_election():
-    threading.Timer(LEADER_ELECTION_INTERVAL , leader_election).start()
+    threading.Timer(LEADER_ELECTION_INTERVAL, leader_election).start()
 
     global current_leader
-    ip_address , port = stakepool_config['rest']['listen'].split(':')
+    ip_address, port = stakepool_config['rest']['listen'].split(':')
 
     healthiest_node = -1
     highest_blockheight = 0
+    lowest_latency = 10000
 
     # Find healthiest node, (highest node)
     for i in range(number_of_nodes):
 
-        if highest_blockheight < nodes[f'node_{i}']['lastBlockHeight']:
+        if highest_blockheight <= nodes[f'node_{i}']['lastBlockHeight']:
             highest_blockheight = nodes[f'node_{i}']['lastBlockHeight']
-            healthiest_node = i
+            if lowest_latency > nodes[f'node_{i}']['avgLatencyRecords']:
+                lowest_latency = nodes[f'node_{i}']['avgLatencyRecords']
+                healthiest_node = i
 
-    if healthiest_node < 0:
+    if healthiest_node < 0 or is_in_transition:
         return
 
     if current_leader != healthiest_node:
@@ -148,7 +169,7 @@ def leader_election():
 
         try:
             # Select leader
-            subprocess.run([jcli_call_format , 'rest' , 'v0' , 'leaders' , 'post' , '-f' , node_secret_path , '-h' ,
+            subprocess.run([jcli_call_format, 'rest', 'v0', 'leaders', 'post', '-f', node_secret_path, '-h',
                             f'http://{ip_address}:{int(port) + healthiest_node}/api'])
         except subprocess.CalledProcessError as e:
             print("Could not elect new leader, skipping")
@@ -156,30 +177,14 @@ def leader_election():
 
         if not current_leader < 0:
             # Delete old leader
-            subprocess.run([jcli_call_format , 'rest' , 'v0' , 'leaders' , 'delete' , '1' , '-h' ,
+            subprocess.run([jcli_call_format, 'rest', 'v0', 'leaders', 'delete', '1', '-h',
                             f'http://{ip_address}:{int(port) + current_leader}/api'])
         # Update current leader
         current_leader = healthiest_node
 
 
-def is_nodes_running():
-    ip_address , port = stakepool_config['rest']['listen'].split(':')
-
-    for i in range(number_of_nodes):
-        try:
-            output = yaml.safe_load(subprocess.check_output(
-                [jcli_call_format , 'rest' , 'v0' , 'node' , 'stats' , 'get' , '-h' ,
-                 f'http://{ip_address}:{int(port) + i}/api']).decode('utf-8'))
-            if output['state'] == 'Bootstrapping':
-                return i
-        except subprocess.CalledProcessError as e:
-            pass
-
-    return -1
-
-
 def stuck_check():
-    threading.Timer(STUCK_CHECK_INTERVAL , stuck_check).start()
+    threading.Timer(STUCK_CHECK_INTERVAL, stuck_check).start()
 
     global nodes
 
@@ -195,18 +200,24 @@ def stuck_check():
             start_node(i)
 
 
-def table_update():
-    threading.Timer(TABLE_UPDATE_INTERVAL , table_update).start()
+def time_between(d1, d2):
+    d1 = datetime.datetime.strptime(d1, "%Y-%m-%dT%H:%M:%S%z")
+    d2 = datetime.datetime.strptime(d2, "%Y-%m-%dT%H:%M:%S%z")
+    return abs((d2 - d1).seconds)
 
-    headers = ['Node' , 'State' , 'Block height' , 'pooltoolmax' , 'Delta' , 'Uptime' , 'Time since last sync' ,
+
+def table_update():
+    threading.Timer(TABLE_UPDATE_INTERVAL, table_update).start()
+
+    headers = ['Node', 'State', 'Block height', 'pooltoolmax', 'Delta', 'Uptime', 'Time since last sync',
                'Current leader']
     data = []
 
     for i in range(number_of_nodes):
         temp_list = []
         temp_list.extend(
-            [f'Node {i}' , nodes[f'node_{i}']['state'] , nodes[f'node_{i}']['lastBlockHeight'] , pooltoolmax ,
-             nodes[f'node_{i}']['lastBlockHeight'] - pooltoolmax , nodes[f'node_{i}']['uptime'] ,
+            [f'Node {i}', nodes[f'node_{i}']['state'], nodes[f'node_{i}']['lastBlockHeight'], pooltoolmax,
+             nodes[f'node_{i}']['lastBlockHeight'] - pooltoolmax, nodes[f'node_{i}']['uptime'],
              int(time.time()) - nodes[f'node_{i}']['timeSinceLastBlock']])
 
         if i == current_leader:
@@ -217,35 +228,51 @@ def table_update():
         data.append(temp_list)
 
     # clear()
-    print(tabulate(data , headers))
+    print(tabulate(data, headers))
+    print('--------------------------------')
+
+    headers = ['Node', 'lastBlockTime', 'lastReceivedBlockTime', 'latency', 'avg5LastLatency']
+    data = []
+
+    for i in range(number_of_nodes):
+        temp_list = []
+        temp_list.extend(
+            [f'Node {i}', nodes[f'node_{i}']['lastBlockTime'], nodes[f'node_{i}']['lastReceivedBlockTime'],
+             nodes[f'node_{i}']['latency'], nodes[f'node_{i}']['avgLatencyRecords']])
+        data.append(temp_list)
+
+    print(tabulate(data, headers))
+
+    print('________________________________')
 
 
 def send_my_tip():
-    threading.Timer(SEND_MY_TIP_INTERVAL , send_my_tip).start()
+    threading.Timer(SEND_MY_TIP_INTERVAL, send_my_tip).start()
 
     global pooltoolmax
 
     if current_leader < 0:
         return
 
-    # lastPoolID =$(cli block ${lastBlockHash} get | cut -c169-232)
-    ip_address , port = stakepool_config['rest']['listen'].split(':')
+    ip_address, port = stakepool_config['rest']['listen'].split(':')
     try:
         stats = yaml.safe_load(subprocess.check_output(
-            [jcli_call_format , 'rest' , 'v0' , 'block' , nodes[f'node_{current_leader}']['lastBlockHash'] , 'get' ,
-             '-h' ,
+            [jcli_call_format, 'rest', 'v0', 'block', nodes[f'node_{current_leader}']['lastBlockHash'], 'get',
+             '-h',
              f'http://{ip_address}:{int(port) + current_leader}/api']).decode(
             'utf-8'))
-        # test = subprocess.check_output([f'echo "{stats}"', '|', 'cut -c169-232'], shell=True)
-        PARAMS = {'poolid': pool_id , 'userid': user_id , 'genesispref': genesis_hash ,
-                  'mytip': nodes[f'node_{current_leader}']['lastBlockHeight'] ,
-                  'lasthash': nodes[f'node_{current_leader}']['lastBlockHash'] , 'lastpool': stats}
+
+        PARAMS = {'poolid': pool_id, 'userid': user_id, 'genesispref': genesis_hash,
+                  'mytip': nodes[f'node_{current_leader}']['lastBlockHeight'],
+                  'lasthash': nodes[f'node_{current_leader}']['lastBlockHash'], 'lastpool': stats[168:168 + 64],
+                  'lastParent': stats[104:104 + 64], 'lastSlot': f'0x{stats[24:24 + 8]}',
+                  'lastEpoch': f'0x{stats[16:16 + 8]}'}
         # sending get request and saving the response as response object
-        r = requests.get(url=url , params=PARAMS)
+        r = requests.get(url=url, params=PARAMS)
 
         # extracting data in json format
         data = r.json()
-        if data['success']:
+        if data['success'] and data['confidence']:
             pooltoolmax = int(data['pooltoolmax'])
 
     except subprocess.CalledProcessError as e:
@@ -258,17 +285,18 @@ is_in_transition = False
 # This method is based on
 # https://github.com/rdlrt/Alternate-Jormungandr-Testnet/blob/master/scripts/jormungandr-leaders-failover.sh
 def check_transition():
-    threading.Timer(TRANSITION_CHECK_INTERVAL , check_transition).start()
+    threading.Timer(TRANSITION_CHECK_INTERVAL, check_transition).start()
     global is_in_transition
 
     if current_leader < 0 or is_in_transition:
         return
 
-    ip_address , port = stakepool_config['rest']['listen'].split(':')
+    ip_address, port = stakepool_config['rest']['listen'].split(':')
 
     try:
         settings = yaml.safe_load(subprocess.check_output(
-            [jcli_call_format , 'rest' , 'v0' , 'settings' , 'get' , '-h' , f'http://{ip_address}:{int(port) + current_leader}/api']))
+            [jcli_call_format, 'rest', 'v0', 'settings', 'get', '-h',
+             f'http://{ip_address}:{int(port) + current_leader}/api']))
 
     except subprocess.CalledProcessError as e:
         return
@@ -277,16 +305,18 @@ def check_transition():
     slots_per_epoch = int(settings['slotsPerEpoch'])
 
     curr_slot = (
-                (((int(time.time()) - 1576264417) / slot_duration) % (slots_per_epoch * slot_duration)) / slot_duration)
+            (((int(time.time()) - 1576264417) / slot_duration) % (slots_per_epoch * slot_duration)) / slot_duration)
     diff_epoch_end = slots_per_epoch - curr_slot
+
+    print(f'slots to next epoch: {diff_epoch_end}')
 
     if diff_epoch_end < slot_duration + 5:  # Adds a small probability of creating an adversarial fork if assigned for last 3 slots of the epoch, or first 3 slots of next epoch
         is_in_transition = True
-        print("Adding keys to all nodes for epoch transition:")
+        print("Electing all nodes as leaders for epoch transition:")
 
         for i in range(number_of_nodes):
             try:
-                subprocess.run([jcli_call_format , 'rest' , 'v0' , 'leaders' , 'post' , '-f' , node_secret_path , '-h' ,
+                subprocess.run([jcli_call_format, 'rest', 'v0', 'leaders', 'post', '-f', node_secret_path, '-h',
                                 f'http://{ip_address}:{int(port) + i}/api'])
             except subprocess.CalledProcessError as e:
                 continue
@@ -298,7 +328,7 @@ def check_transition():
             try:
                 # Delete leaders except one
                 if not i == current_leader:
-                    subprocess.run([jcli_call_format , 'rest' , 'v0' , 'leaders' , 'delete' , '1' , '-h' ,
+                    subprocess.run([jcli_call_format, 'rest', 'v0', 'leaders', 'delete', '1', '-h',
                                     f'http://{ip_address}:{int(port) + i}/api'])
 
             except subprocess.CalledProcessError as e:
@@ -312,14 +342,10 @@ def clear():
 
 
 def main():
-    # nodes_running = -1
-
+    # Start nodes
     start_nodes()
-    # Wait until at least one node is up and running #TODO: Is this really needed?
-    # while 0 > nodes_running:
-    #     time.sleep(60)
-    #     nodes_running = is_nodes_running()
 
+    # Begin threads
     update_nodes_info()
     leader_election()
     table_update()
