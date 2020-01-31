@@ -308,9 +308,10 @@ def check_transition():
     slots_per_epoch = int(settings['slotsPerEpoch'])
 
     curr_slot = (
-            (((int(time.time()) - 1576264417) / slot_duration) % (slots_per_epoch * slot_duration)) / slot_duration)
+            ((int(time.time()) - 1576264417) % (slots_per_epoch * slot_duration)) / slot_duration)
     diff_epoch_end = slots_per_epoch - curr_slot
 
+    print(f'current slot: {curr_slot}')
     print(f'slots to next epoch: {diff_epoch_end}')
 
     if diff_epoch_end < slot_duration + 5:  # Adds a small probability of creating an adversarial fork if assigned for last 3 slots of the epoch, or first 3 slots of next epoch
