@@ -19,6 +19,7 @@
         "STUCK_CHECK": 30,
         "LAST_SYNC_RESTART": 300,
         "SEND_MY_TIP": 30,
-		"TRANSITION_CHECK": 5
+		"TRANSITION_CHECK": 5,
+		"LEADERS_CHECK": 30
     }
 }

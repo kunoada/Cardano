@@ -12,7 +12,6 @@ import requests
 import yaml
 from tabulate import tabulate
 
-# TODO: Put configuration in a config file
 config = json.load(open('my_config.json', 'r'))
 
 #### Configuration ####
@@ -34,6 +33,7 @@ STUCK_CHECK_INTERVAL = config['Intervals']['STUCK_CHECK']
 LAST_SYNC_RESTART = config['Intervals']['LAST_SYNC_RESTART']
 SEND_MY_TIP_INTERVAL = config['Intervals']['SEND_MY_TIP']
 TRANSITION_CHECK_INTERVAL = config['Intervals']['TRANSITION_CHECK']
+LEADERS_CHECK_INTERVAL = config['Intervals']['LEADERS_CHECK']
 #######################
 
 # _________________________________________________________________________________________________________________#
@@ -232,7 +232,7 @@ def table_update():
 
     # clear()
     print(tabulate(data, headers))
-    print('--------------------------------')
+    print('')
 
     headers = ['Node', 'lastBlockTime', 'lastReceivedBlockTime', 'latency', 'avg5LastLatency']
     data = []
@@ -245,6 +245,8 @@ def table_update():
         data.append(temp_list)
 
     print(tabulate(data, headers))
+    print('')
+    print(f'Time to next epoch: {str(datetime.timedelta(seconds=round(diff_epoch_end_seconds)))}')
 
     print('________________________________')
 
@@ -283,6 +285,7 @@ def send_my_tip():
 
 
 is_in_transition = False
+diff_epoch_end_seconds = 0
 
 
 # This method is based on
@@ -290,6 +293,7 @@ is_in_transition = False
 def check_transition():
     threading.Timer(TRANSITION_CHECK_INTERVAL, check_transition).start()
     global is_in_transition
+    global diff_epoch_end_seconds
 
     if current_leader < 0 or is_in_transition:
         return
@@ -307,12 +311,9 @@ def check_transition():
     slot_duration = int(settings['slotDuration'])
     slots_per_epoch = int(settings['slotsPerEpoch'])
 
-    curr_slot = (
-            ((int(time.time()) - 1576264417) % (slots_per_epoch * slot_duration)) / slot_duration)
+    curr_slot = (((int(time.time()) - 1576264417) % (slots_per_epoch * slot_duration)) / slot_duration)
     diff_epoch_end = slots_per_epoch - curr_slot
-
-    print(f'current slot: {curr_slot}')
-    print(f'slots to next epoch: {diff_epoch_end}')
+    diff_epoch_end_seconds = diff_epoch_end * slot_duration
 
     if diff_epoch_end < slot_duration + 5:  # Adds a small probability of creating an adversarial fork if assigned for last 3 slots of the epoch, or first 3 slots of next epoch
         is_in_transition = True
@@ -320,8 +321,9 @@ def check_transition():
 
         for i in range(number_of_nodes):
             try:
-                subprocess.run([jcli_call_format, 'rest', 'v0', 'leaders', 'post', '-f', node_secret_path, '-h',
-                                f'http://{ip_address}:{int(port) + i}/api'])
+                if not i == current_leader:
+                    subprocess.run([jcli_call_format, 'rest', 'v0', 'leaders', 'post', '-f', node_secret_path, '-h',
+                                    f'http://{ip_address}:{int(port) + i}/api'])
             except subprocess.CalledProcessError as e:
                 continue
 
@@ -340,6 +342,40 @@ def check_transition():
         is_in_transition = False
 
 
+# Make sure only one node is leader. (only for safety reasons)! This should be done regularly.
+# Though this should never happen.
+def leaders_check():
+    threading.Timer(30, leaders_check).start()
+    ip_address, port = stakepool_config['rest']['listen'].split(':')
+
+    max_retries = 5
+
+    for i in range(number_of_nodes):
+        if current_leader == i or nodes[f'node_{i}']['state'] != 'Running':
+            continue
+
+        try:
+            for leader_id in yaml.safe_load(subprocess.check_output(
+                    [jcli_call_format, 'rest', 'v0', 'leaders', 'get', '-h',
+                     f'http://{ip_address}:{int(port) + i}/api']).decode('utf-8')):
+
+                for retry in range(max_retries):
+                    try:
+                        subprocess.run([jcli_call_format, 'rest', 'v0', 'leaders', 'delete', f'{leader_id}', '-h',
+                                        f'http://{ip_address}:{int(port) + i}/api'])
+                        break
+                    except subprocess.CalledProcessError as e:
+                        pass
+                    if retry == max_retries - 1:
+                        print('kill process')
+                        # TODO: If it ends here, jcli is down -> and a restart is needed.... BUT, is this extra safety needed?
+                        break
+                    time.sleep(1)
+
+        except subprocess.CalledProcessError as e:
+            pass
+
+
 def clear():
     # check and make call for specific operating system
     _ = subprocess.call(['clear' if os.name == 'posix' else 'cls'])
@@ -356,6 +392,7 @@ def main():
     stuck_check()
     send_my_tip()
     check_transition()
+    leaders_check()
 
 
 if __name__ == "__main__":
