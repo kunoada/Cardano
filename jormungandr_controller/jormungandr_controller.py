@@ -346,6 +346,10 @@ def check_transition():
 # Though this should never happen.
 def leaders_check():
     threading.Timer(30, leaders_check).start()
+
+    if is_in_transition:
+        return
+
     ip_address, port = stakepool_config['rest']['listen'].split(':')
 
     max_retries = 5
