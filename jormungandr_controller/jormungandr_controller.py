@@ -64,7 +64,7 @@ def node_init(node_number):
     nodes[f'node_{node_number}']['latency'] = 10000
     nodes[f'node_{node_number}']['last5LatencyRecords'] = collections.deque(maxlen=5)
     nodes[f'node_{node_number}']['avgLatencyRecords'] = 10000
-    nodes[f'node_{node_number}']['leadersLogs'] = yaml.safe_load(open('../test_documents/leader_log', 'r'))
+    nodes[f'node_{node_number}']['leadersLogs'] = []
     nodes[f'node_{node_number}']['numberOfConnections'] = 0
 
 
