@@ -345,7 +345,7 @@ def check_transition():
 # Make sure only one node is leader. (only for safety reasons)! This should be done regularly.
 # Though this should never happen.
 def leaders_check():
-    threading.Timer(30, leaders_check).start()
+    threading.Timer(LEADERS_CHECK_INTERVAL, leaders_check).start()
 
     if is_in_transition:
         return
