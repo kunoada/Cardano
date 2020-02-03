@@ -65,6 +65,7 @@ def node_init(node_number):
     nodes[f'node_{node_number}']['last5LatencyRecords'] = collections.deque(maxlen=5)
     nodes[f'node_{node_number}']['avgLatencyRecords'] = 10000
     nodes[f'node_{node_number}']['leadersLogs'] = []
+    nodes[f'node_{node_number}']['numberOfConnections'] = 0
 
 
 def start_node(node_number):
@@ -106,6 +107,7 @@ def update_nodes_info():
 
     for i in range(number_of_nodes):
         try:
+            network_stats = get_network_stats(i)
             node_stats = yaml.safe_load(subprocess.check_output(
                 [jcli_call_format, 'rest', 'v0', 'node', 'stats', 'get', '-h',
                  f'http://{ip_address}:{int(port) + i}/api']).decode(
@@ -131,6 +133,7 @@ def update_nodes_info():
                 nodes[f'node_{i}']['lastBlockHash'] = node_stats['lastBlockHash']
                 nodes[f'node_{i}']['state'] = 'Running'
                 nodes[f'node_{i}']['uptime'] = node_stats['uptime']
+                nodes[f'node_{i}']['numberOfConnections'] = len(network_stats)
 
             elif node_stats['state'] == 'Bootstrapping':
                 nodes[f'node_{i}']['lastBlockHeight'] = 0
@@ -238,14 +241,14 @@ def table_update():
     print(tabulate(data, headers))
     print('')
 
-    headers = ['Node', 'lastBlockTime', 'lastReceivedBlockTime', 'latency', 'avg5LastLatency']
+    headers = ['Node', 'lastBlockTime', 'lastReceivedBlockTime', 'latency', 'avg5LastLatency', 'connections']
     data = []
 
     for i in range(number_of_nodes):
         temp_list = []
         temp_list.extend(
             [f'Node {i}', nodes[f'node_{i}']['lastBlockTime'], nodes[f'node_{i}']['lastReceivedBlockTime'],
-             nodes[f'node_{i}']['latency'], nodes[f'node_{i}']['avgLatencyRecords']])
+             nodes[f'node_{i}']['latency'], nodes[f'node_{i}']['avgLatencyRecords'], nodes[f'node_{i}']['numberOfConnections']])
         data.append(temp_list)
 
     print(tabulate(data, headers))
@@ -307,6 +310,13 @@ def send_my_tip():
 
 is_in_transition = False
 diff_epoch_end_seconds = 0
+
+
+def get_network_stats(node_number):
+    ip_address , port = stakepool_config['rest']['listen'].split(':')
+    return yaml.safe_load(
+                subprocess.check_output([jcli_call_format , 'rest' , 'v0' , 'network' , 'stats' , 'get' , '-h' ,
+                                f'http://{ip_address}:{int(port) + node_number}/api']).decode('utf-8'))
 
 
 def get_leaders_logs(node_number):
