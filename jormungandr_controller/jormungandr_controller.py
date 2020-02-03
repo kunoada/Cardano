@@ -325,9 +325,13 @@ def get_network_stats(node_number):
 
 def get_leaders_logs(node_number):
     ip_address , port = stakepool_config['rest']['listen'].split(':')
-    return yaml.safe_load(
-                subprocess.check_output([jcli_call_format , 'rest' , 'v0' , 'leaders' , 'logs' , 'get' , '-h' ,
-                                f'http://{ip_address}:{int(port) + node_number}/api']).decode('utf-8'))
+    try:
+        output = yaml.safe_load(
+            subprocess.check_output([jcli_call_format, 'rest', 'v0', 'leaders', 'logs', 'get', '-h',
+                                     f'http://{ip_address}:{int(port) + node_number}/api']).decode('utf-8'))
+    except subprocess.CalledProcessError as e:
+        return []
+    return output
 
 
 def wait_for_leaders_logs():
