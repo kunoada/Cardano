@@ -255,6 +255,7 @@ def table_update():
     print(tabulate(data, headers))
     print('')
     print(f'Time to next epoch: {str(datetime.timedelta(seconds=round(diff_epoch_end_seconds)))}')
+    print('')
 
     if not current_leader < 0:
         print(f"Number of blocks this epoch: {len(nodes[f'node_{current_leader}']['leadersLogs'])}")
@@ -331,7 +332,7 @@ def get_leaders_logs(node_number):
 
 def wait_for_leaders_logs():
     for i in range(number_of_nodes):
-        while 'wake_at_time:' not in nodes[f'node_{i}']['leadersLog']:
+        while 'wake_at_time:' not in nodes[f'node_{i}']['leadersLogs']:
             nodes[f'node_{i}']['leadersLogs'] = get_leaders_logs(i)
             time.sleep(1)
 
