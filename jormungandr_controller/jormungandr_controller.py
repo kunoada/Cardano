@@ -64,7 +64,7 @@ def node_init(node_number):
     nodes[f'node_{node_number}']['latency'] = 10000
     nodes[f'node_{node_number}']['last5LatencyRecords'] = collections.deque(maxlen=5)
     nodes[f'node_{node_number}']['avgLatencyRecords'] = 10000
-    nodes[f'node_{node_number}']['leadersLog'] = []
+    nodes[f'node_{node_number}']['leadersLogs'] = []
 
 
 def start_node(node_number):
@@ -252,12 +252,22 @@ def table_update():
     print('')
     print(f'Time to next epoch: {str(datetime.timedelta(seconds=round(diff_epoch_end_seconds)))}')
 
+    print(f"Number of blocks this epoch: {len({nodes[f'node_{current_leader}']['leadersLog']})}")
     if is_in_transition:
         print('All nodes are currently leaders while no nodes has been elected')
+    elif not nodes[f'node_{current_leader}']['leadersLog']:
+        print('No blocks this epoch')
     else:
-        # {nodes[f'node_{current_leader}']['leadersLog']}
-        # Do some calculation...
-        print(f"Time to next block creation: ")
+        # TODO: Test calculations...
+        next_block_time = 86400 # Max one day
+        for log in nodes[f'node_{current_leader}']['leadersLog']:
+            scheduled_at_time = datetime.datetime.strptime(re.sub(r"([\+-]\d\d):(\d\d)(?::(\d\d(?:.\d+)?))?", r"\1\2\3", log['scheduled_at_time']), "%Y-%m-%dT%H:%M:%S%z")
+            if int(time.time()) > scheduled_at_time > next_block_time:
+                continue
+            else:
+                next_block_time = scheduled_at_time
+
+        print(f"Time to next block creation: {str(datetime.timedelta(seconds=round(next_block_time - int(time.time()))))}")
 
     print('________________________________')
 
@@ -302,14 +312,14 @@ diff_epoch_end_seconds = 0
 def get_leaders_logs(node_number):
     ip_address , port = stakepool_config['rest']['listen'].split(':')
     return yaml.safe_load(
-                subprocess.check_output([jcli_call_format , 'rest' , 'v0' , 'leaders' , 'log' , 'get' , '-h' ,
+                subprocess.check_output([jcli_call_format , 'rest' , 'v0' , 'leaders' , 'logs' , 'get' , '-h' ,
                                 f'http://{ip_address}:{int(port) + node_number}/api']).decode('utf-8'))
 
 
-def wait_for_leaders_log():
+def wait_for_leaders_logs():
     for i in range(number_of_nodes):
         while 'wake_at_time:' not in nodes[f'node_{i}']['leadersLog']:
-            nodes[f'node_{i}']['leadersLog'] = get_leaders_logs(i)
+            nodes[f'node_{i}']['leadersLogs'] = get_leaders_logs(i)
             time.sleep(1)
 
 
@@ -340,7 +350,7 @@ def check_transition():
     diff_epoch_end = slots_per_epoch - curr_slot
     diff_epoch_end_seconds = diff_epoch_end * slot_duration
 
-    if diff_epoch_end < slot_duration + TRANSITION_CHECK_INTERVAL:  # Adds a small probability of creating an adversarial fork if assigned for last 3 slots of the epoch, or first 3 slots of next epoch
+    if diff_epoch_end < slot_duration + TRANSITION_CHECK_INTERVAL:  # Adds a small probability of creating an adversarial fork
         is_in_transition = True
         print("Electing all nodes as leaders for epoch transition:")
 
@@ -355,7 +365,7 @@ def check_transition():
         # Wait until new epoch
         time.sleep(slot_duration + TRANSITION_CHECK_INTERVAL - 1)
 
-        wait_for_leaders_log()
+        wait_for_leaders_logs()  # This is an infinite loop, if the nodes are not elected for any blocks.
 
         for i in range(number_of_nodes):
             try:
