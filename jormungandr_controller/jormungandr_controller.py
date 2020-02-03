@@ -64,6 +64,7 @@ def node_init(node_number):
     nodes[f'node_{node_number}']['latency'] = 10000
     nodes[f'node_{node_number}']['last5LatencyRecords'] = collections.deque(maxlen=5)
     nodes[f'node_{node_number}']['avgLatencyRecords'] = 10000
+    nodes[f'node_{node_number}']['leadersLog'] = []
 
 
 def start_node(node_number):
@@ -158,11 +159,14 @@ def leader_election():
     # Find healthiest node, (highest node)
     for i in range(number_of_nodes):
 
-        if highest_blockheight <= nodes[f'node_{i}']['lastBlockHeight']:
+        if highest_blockheight < nodes[f'node_{i}']['lastBlockHeight']:
             highest_blockheight = nodes[f'node_{i}']['lastBlockHeight']
-            if lowest_latency > nodes[f'node_{i}']['avgLatencyRecords']:
-                lowest_latency = nodes[f'node_{i}']['avgLatencyRecords']
-                healthiest_node = i
+            lowest_latency = nodes[f'node_{i}']['avgLatencyRecords']
+            healthiest_node = i
+            continue
+        elif highest_blockheight == nodes[f'node_{i}']['lastBlockHeight'] and lowest_latency > nodes[f'node_{i}']['avgLatencyRecords']:
+            lowest_latency = nodes[f'node_{i}']['avgLatencyRecords']
+            healthiest_node = i
 
     if healthiest_node < 0 or is_in_transition:
         return
@@ -223,7 +227,7 @@ def table_update():
              nodes[f'node_{i}']['lastBlockHeight'] - pooltoolmax, nodes[f'node_{i}']['uptime'],
              int(time.time()) - nodes[f'node_{i}']['timeSinceLastBlock']])
 
-        if i == current_leader:
+        if i == current_leader or is_in_transition:
             temp_list.append(1)
         else:
             temp_list.append(0)
@@ -247,6 +251,13 @@ def table_update():
     print(tabulate(data, headers))
     print('')
     print(f'Time to next epoch: {str(datetime.timedelta(seconds=round(diff_epoch_end_seconds)))}')
+
+    if is_in_transition:
+        print('All nodes are currently leaders while no nodes has been elected')
+    else:
+        # {nodes[f'node_{current_leader}']['leadersLog']}
+        # Do some calculation...
+        print(f"Time to next block creation: ")
 
     print('________________________________')
 
@@ -288,6 +299,20 @@ is_in_transition = False
 diff_epoch_end_seconds = 0
 
 
+def get_leaders_logs(node_number):
+    ip_address , port = stakepool_config['rest']['listen'].split(':')
+    return yaml.safe_load(
+                subprocess.check_output([jcli_call_format , 'rest' , 'v0' , 'leaders' , 'log' , 'get' , '-h' ,
+                                f'http://{ip_address}:{int(port) + node_number}/api']).decode('utf-8'))
+
+
+def wait_for_leaders_log():
+    for i in range(number_of_nodes):
+        while 'wake_at_time:' not in nodes[f'node_{i}']['leadersLog']:
+            nodes[f'node_{i}']['leadersLog'] = get_leaders_logs(i)
+            time.sleep(1)
+
+
 # This method is based on
 # https://github.com/rdlrt/Alternate-Jormungandr-Testnet/blob/master/scripts/jormungandr-leaders-failover.sh
 def check_transition():
@@ -315,7 +340,7 @@ def check_transition():
     diff_epoch_end = slots_per_epoch - curr_slot
     diff_epoch_end_seconds = diff_epoch_end * slot_duration
 
-    if diff_epoch_end < slot_duration + 5:  # Adds a small probability of creating an adversarial fork if assigned for last 3 slots of the epoch, or first 3 slots of next epoch
+    if diff_epoch_end < slot_duration + TRANSITION_CHECK_INTERVAL:  # Adds a small probability of creating an adversarial fork if assigned for last 3 slots of the epoch, or first 3 slots of next epoch
         is_in_transition = True
         print("Electing all nodes as leaders for epoch transition:")
 
@@ -328,7 +353,9 @@ def check_transition():
                 continue
 
         # Wait until new epoch
-        time.sleep(slot_duration + 10)
+        time.sleep(slot_duration + TRANSITION_CHECK_INTERVAL - 1)
+
+        wait_for_leaders_log()
 
         for i in range(number_of_nodes):
             try:
