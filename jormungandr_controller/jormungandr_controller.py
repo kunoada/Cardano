@@ -64,7 +64,7 @@ def node_init(node_number):
     nodes[f'node_{node_number}']['latency'] = 10000
     nodes[f'node_{node_number}']['last5LatencyRecords'] = collections.deque(maxlen=5)
     nodes[f'node_{node_number}']['avgLatencyRecords'] = 10000
-    nodes[f'node_{node_number}']['leadersLogs'] = []  # yaml.safe_load(open('../test_documents/leader_log', 'r'))
+    nodes[f'node_{node_number}']['leadersLogs'] = yaml.safe_load(open('../test_documents/leader_log', 'r'))
     nodes[f'node_{node_number}']['numberOfConnections'] = 0
 
 
@@ -256,25 +256,24 @@ def table_update():
     print('')
     print(f'Time to next epoch: {str(datetime.timedelta(seconds=round(diff_epoch_end_seconds)))}')
 
-    # if not current_leader < 0:
-    #     print(f"Number of blocks this epoch: {len(nodes[f'node_{current_leader}']['leadersLogs'])}")
-    #     if is_in_transition:
-    #         print('All nodes are currently leaders while no nodes has been elected')
-    #     elif not nodes[f'node_{current_leader}']['leadersLogs']:
-    #         print('No blocks this epoch')
-    #     else:
-    #         # TODO: Test calculations...
-    #         next_block_time = int(time.time()) + 86400 # Max epoch time in seconds
-    #         for log in nodes[f'node_{current_leader}']['leadersLogs']:
-    #             scheduled_at_time = datetime.datetime.strptime(re.sub(r"([\+-]\d\d):(\d\d)(?::(\d\d(?:.\d+)?))?", r"\1\2\3", log['scheduled_at_time']), "%Y-%m-%dT%H:%M:%S%z").seconds
-    #             if int(time.time()) > scheduled_at_time > next_block_time:
-    #                 continue
-    #             else:
-    #                 next_block_time = scheduled_at_time
-    #         if next_block_time == 86400:
-    #             print('No more blocks this epoch')
-    #         else:
-    #             print(f"Time to next block creation: {str(datetime.timedelta(seconds=round(next_block_time - int(time.time()))))}")
+    if not current_leader < 0:
+        print(f"Number of blocks this epoch: {len(nodes[f'node_{current_leader}']['leadersLogs'])}")
+        if is_in_transition:
+            print('All nodes are currently leaders while no nodes has been elected for block creation')
+        elif not nodes[f'node_{current_leader}']['leadersLogs']:
+            print('No blocks this epoch')
+        else:
+            # TODO: Test calculations...
+            next_block_time = max_time = int(time.time()) + 86400 # + Max epoch time in seconds # TODO: change this to time.time() + slotDuration * slotPerEpoch
+            for log in nodes[f'node_{current_leader}']['leadersLogs']:
+                scheduled_at_time = datetime.datetime.strptime(re.sub(r"([\+-]\d\d):(\d\d)(?::(\d\d(?:.\d+)?))?", r"\1\2\3", log['scheduled_at_time']), "%Y-%m-%dT%H:%M:%S%z").timestamp()
+                if int(time.time()) < scheduled_at_time < next_block_time:
+                    next_block_time = scheduled_at_time
+
+            if next_block_time == max_time:
+                print('No more blocks this epoch')
+            else:
+                print(f"Time to next block creation: {str(datetime.timedelta(seconds=round(next_block_time - int(time.time()))))}")
 
     print('________________________________')
 
