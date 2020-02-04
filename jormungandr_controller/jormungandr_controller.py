@@ -213,7 +213,7 @@ def stuck_check():
     for i in range(number_of_nodes):
 
         if int(time.time()) - nodes[f'node_{i}']['timeSinceLastBlock'] > LAST_SYNC_RESTART and nodes[f'node_{i}']['state'] == 'Bootstrapping':
-            print(f'Node {i} is restarting due to out of sync or stuck in bootstrapping')
+            print(f'Node {i} is restarting due to stuck in bootstrapping')
             # Kill process
             nodes[f'node_{i}']['process_id'].kill()
             # Give it some time to shutdown
@@ -368,7 +368,7 @@ def check_transition():
     global settings
     global is_new_epoch
 
-    if current_leader < 0 or is_in_transition:
+    if current_leader < 0:
         return
 
     ip_address, port = stakepool_config['rest']['listen'].split(':')
@@ -389,6 +389,9 @@ def check_transition():
     curr_slot = (((int(time.time()) - 1576264417) % (slots_per_epoch * slot_duration)) / slot_duration)
     diff_epoch_end = slots_per_epoch - curr_slot
     diff_epoch_end_seconds = diff_epoch_end * slot_duration
+
+    if is_in_transition:
+        return
 
     if diff_epoch_end < slot_duration + TRANSITION_CHECK_INTERVAL:  # Adds a small probability of creating an adversarial fork
         is_in_transition = True
