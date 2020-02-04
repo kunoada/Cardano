@@ -322,7 +322,7 @@ def get_network_stats(node_number):
                 subprocess.check_output([jcli_call_format , 'rest' , 'v0' , 'network' , 'stats' , 'get' , '-h' ,
                                 f'http://{ip_address}:{int(port) + node_number}/api']).decode('utf-8'))
     except subprocess.CalledProcessError as e:
-        return -1
+        return []
     return output
 
 
@@ -344,25 +344,33 @@ def wait_for_leaders_logs():
             time.sleep(1)
 
 
+settings = {}
+is_new_epoch = True
+
+
 # This method is based on
 # https://github.com/rdlrt/Alternate-Jormungandr-Testnet/blob/master/scripts/jormungandr-leaders-failover.sh
 def check_transition():
     threading.Timer(TRANSITION_CHECK_INTERVAL, check_transition).start()
     global is_in_transition
     global diff_epoch_end_seconds
+    global settings
+    global is_new_epoch
 
     if current_leader < 0 or is_in_transition:
         return
 
     ip_address, port = stakepool_config['rest']['listen'].split(':')
 
-    try:
-        settings = yaml.safe_load(subprocess.check_output(
-            [jcli_call_format, 'rest', 'v0', 'settings', 'get', '-h',
-             f'http://{ip_address}:{int(port) + current_leader}/api']))
+    if is_new_epoch:
+        try:
+            settings = yaml.safe_load(subprocess.check_output(
+                [jcli_call_format, 'rest', 'v0', 'settings', 'get', '-h',
+                 f'http://{ip_address}:{int(port) + current_leader}/api']))
+            is_new_epoch = False
 
-    except subprocess.CalledProcessError as e:
-        return
+        except subprocess.CalledProcessError as e:
+            return
 
     slot_duration = int(settings['slotDuration'])
     slots_per_epoch = int(settings['slotsPerEpoch'])
@@ -397,6 +405,8 @@ def check_transition():
 
             except subprocess.CalledProcessError as e:
                 continue
+
+        is_new_epoch = True
         is_in_transition = False
 
 
