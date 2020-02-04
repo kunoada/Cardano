@@ -112,7 +112,6 @@ def update_nodes_info():
                 'utf-8'))
 
             if node_stats['state'] == 'Running':
-                network_stats = get_network_stats(i)
                 if nodes[f'node_{i}']['lastBlockHeight'] < int(node_stats['lastBlockHeight']):
                     nodes[f'node_{i}']['lastBlockHeight'] = int(node_stats['lastBlockHeight'])
                     nodes[f'node_{i}']['timeSinceLastBlock'] = int(time.time())
@@ -132,7 +131,6 @@ def update_nodes_info():
                 nodes[f'node_{i}']['lastBlockHash'] = node_stats['lastBlockHash']
                 nodes[f'node_{i}']['state'] = 'Running'
                 nodes[f'node_{i}']['uptime'] = node_stats['uptime']
-                nodes[f'node_{i}']['numberOfConnections'] = len(network_stats)
 
             elif node_stats['state'] == 'Bootstrapping':
                 nodes[f'node_{i}']['lastBlockHeight'] = 0
@@ -143,6 +141,15 @@ def update_nodes_info():
             nodes[f'node_{i}']['lastBlockHeight'] = 0
             nodes[f'node_{i}']['lastBlockHash'] = ''
             nodes[f'node_{i}']['state'] = 'Starting'
+            continue
+
+    for i in range(number_of_nodes):
+        try:
+            if node_stats['state'] == 'Running':
+                network_stats = get_network_stats(i)
+                nodes[f'node_{i}']['numberOfConnections'] = len(network_stats)
+        except subprocess.CalledProcessError as e:
+            print('Could not get network stats')
             continue
 
     threading.Timer(UPDATE_NODES_INTERVAL, update_nodes_info).start()
@@ -186,8 +193,12 @@ def leader_election():
 
         if not current_leader < 0:
             # Delete old leader
-            subprocess.run([jcli_call_format, 'rest', 'v0', 'leaders', 'delete', '1', '-h',
-                            f'http://{ip_address}:{int(port) + current_leader}/api'])
+            try:
+                subprocess.run([jcli_call_format, 'rest', 'v0', 'leaders', 'delete', '1', '-h',
+                                f'http://{ip_address}:{int(port) + current_leader}/api'])
+            except subprocess.CalledProcessError as e:
+                print("Could not delete old leader")
+
         # Update current leader
         current_leader = healthiest_node
 
@@ -195,11 +206,13 @@ def leader_election():
 
 
 def stuck_check():
+    threading.Timer(STUCK_CHECK_INTERVAL, stuck_check).start()
+
     global nodes
 
     for i in range(number_of_nodes):
 
-        if int(time.time()) - nodes[f'node_{i}']['timeSinceLastBlock'] > LAST_SYNC_RESTART:
+        if int(time.time()) - nodes[f'node_{i}']['timeSinceLastBlock'] > LAST_SYNC_RESTART and nodes[f'node_{i}']['state'] == 'Bootstrapping':
             print(f'Node {i} is restarting due to out of sync or stuck in bootstrapping')
             # Kill process
             nodes[f'node_{i}']['process_id'].kill()
@@ -207,8 +220,6 @@ def stuck_check():
             time.sleep(5)
             # Start a jormungandr process
             start_node(i)
-
-    threading.Timer(STUCK_CHECK_INTERVAL, stuck_check).start()
 
 
 def time_between(d1, d2):
