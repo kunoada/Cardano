@@ -100,8 +100,6 @@ def start_nodes():
 
 
 def update_nodes_info():
-    threading.Timer(UPDATE_NODES_INTERVAL, update_nodes_info).start()
-
     global nodes
     ip_address, port = stakepool_config['rest']['listen'].split(':')
 
@@ -146,6 +144,8 @@ def update_nodes_info():
             nodes[f'node_{i}']['lastBlockHash'] = ''
             nodes[f'node_{i}']['state'] = 'Starting'
             continue
+
+    threading.Timer(UPDATE_NODES_INTERVAL, update_nodes_info).start()
 
 
 # ./jcli rest v0 leaders logs get -h http://127.0.0.1:3100/api
@@ -195,8 +195,6 @@ def leader_election():
 
 
 def stuck_check():
-    threading.Timer(STUCK_CHECK_INTERVAL, stuck_check).start()
-
     global nodes
 
     for i in range(number_of_nodes):
@@ -209,6 +207,8 @@ def stuck_check():
             time.sleep(5)
             # Start a jormungandr process
             start_node(i)
+
+    threading.Timer(STUCK_CHECK_INTERVAL, stuck_check).start()
 
 
 def time_between(d1, d2):
@@ -264,7 +264,6 @@ def table_update():
         elif not nodes[f'node_{current_leader}']['leadersLogs']:
             print('No blocks this epoch')
         else:
-            # TODO: Test calculations...
             next_block_time = max_time = int(time.time()) + 86400 # + Max epoch time in seconds # TODO: change this to time.time() + slotDuration * slotPerEpoch
             for log in nodes[f'node_{current_leader}']['leadersLogs']:
                 scheduled_at_time = datetime.datetime.strptime(re.sub(r"([\+-]\d\d):(\d\d)(?::(\d\d(?:.\d+)?))?", r"\1\2\3", log['scheduled_at_time']), "%Y-%m-%dT%H:%M:%S%z").timestamp()
