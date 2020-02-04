@@ -151,8 +151,6 @@ def update_nodes_info():
 # ./jcli rest v0 leaders logs get -h http://127.0.0.1:3100/api
 # ./jcli rest v0 node stats get -h http://127.0.0.1:3100/api
 def leader_election():
-    threading.Timer(LEADER_ELECTION_INTERVAL, leader_election).start()
-
     global current_leader
     ip_address, port = stakepool_config['rest']['listen'].split(':')
 
@@ -172,10 +170,10 @@ def leader_election():
             lowest_latency = nodes[f'node_{i}']['avgLatencyRecords']
             healthiest_node = i
 
-    if healthiest_node < 0 or is_in_transition:
-        return
+    # if healthiest_node < 0 or is_in_transition:
+    #     return
 
-    if current_leader != healthiest_node:
+    if current_leader != healthiest_node and not is_in_transition and healthiest_node >= 0:
         print(f'Changing leader from {current_leader} to {healthiest_node}')
 
         try:
@@ -192,6 +190,8 @@ def leader_election():
                             f'http://{ip_address}:{int(port) + current_leader}/api'])
         # Update current leader
         current_leader = healthiest_node
+
+    threading.Timer(LEADER_ELECTION_INTERVAL, leader_election).start()
 
 
 def stuck_check():
