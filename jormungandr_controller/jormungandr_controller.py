@@ -318,9 +318,13 @@ diff_epoch_end_seconds = 0
 
 def get_network_stats(node_number):
     ip_address , port = stakepool_config['rest']['listen'].split(':')
-    return yaml.safe_load(
+    try:
+        output = yaml.safe_load(
                 subprocess.check_output([jcli_call_format , 'rest' , 'v0' , 'network' , 'stats' , 'get' , '-h' ,
                                 f'http://{ip_address}:{int(port) + node_number}/api']).decode('utf-8'))
+    except subprocess.CalledProcessError as e:
+        return -1
+    return output
 
 
 def get_leaders_logs(node_number):
