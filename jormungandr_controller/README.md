@@ -13,7 +13,8 @@ The jormungandr controller is automating all the dirty work a stakepool operator
 - Failover script, all nodes are elected as leaders for an epoch transition
 - Leader check, which makes sure that only one node is leader, while having blocks
 - Telegram bot 
-    - notifies when a node is out of sync, also a restart command can be executed
+    - Notifies when a node is out of sync 
+    - Restart command can be executed
 
 ### Dependencies needed;
 - PyYAML
