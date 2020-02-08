@@ -44,11 +44,17 @@ python jormungandr_controller.py
 
 It is **recommended** to run the script as a startup service, so the user can fully relax without any need of manual maintenance.
 
-## Telegram Bot
+#### Telegram Bot
 
 To setup the telegram bot I recommend using this guide; https://medium.com/@mycodingblog/get-telegram-notification-when-python-script-finishes-running-a54f12822cdc
 
 Please fill in the token and chat id in the config file
+
+##### Usage
+
+**Actions**
+  Restart node; text the bot 'restart x', where x can be any number between node 0...n
+  Example; restart 1
 
 ---------------------
 
