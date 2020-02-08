@@ -1,0 +1,4 @@
+python-telegram-bot==12.3.0
+PyYAML==5.3
+requests==2.22.0
+tabulate==0.8.6
