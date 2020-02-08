@@ -50,7 +50,7 @@ To setup the telegram bot I recommend using this guide; https://medium.com/@myco
 
 Please fill in the token and chat id in the config file
 
-##### Usage
+#### Telegram Bot Usage
 
 **Actions**
 
