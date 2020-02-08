@@ -50,7 +50,7 @@ It is **recommended** to run the script as a startup service, so the user can fu
 
 To setup the telegram bot I recommend using this guide; https://medium.com/@mycodingblog/get-telegram-notification-when-python-script-finishes-running-a54f12822cdc
 
-Please fill in the token and chat id in the config file
+Please fill in the token and chat id in the config file, and set activate to true
 
 ### Telegram Bot Usage
 
