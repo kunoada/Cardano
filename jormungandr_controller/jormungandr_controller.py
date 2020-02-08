@@ -56,7 +56,7 @@ def node_init(node_number):
     nodes[f'node_{node_number}'] = {}
     # Start a jormungandr process
     nodes[f'node_{node_number}']['process_id'] = subprocess.Popen(
-        [jormungandr_call_format, '--genesis-block-hash', genesis_hash, '--config', tmp_config_file_path],
+        [jormungandr_call_format, '--genesis-block-hash', genesis_hash, '--config', tmp_config_file_path, '--secret', node_secret_path],
         stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)  # TODO: node should start as leader??? maybe..
     # Give a timestamp when process is born
     nodes[f'node_{node_number}']['timeSinceLastBlock'] = int(time.time())
