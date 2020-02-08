@@ -8,14 +8,24 @@ The jormungandr controller is automating all the dirty work a stakepool operator
 
 ![Image of status update](https://raw.githubusercontent.com/kunoada/Cardano/master/jormungandr_controller/jormungandr_controller_stat_update.PNG)
 
-- Stuck check, restart node x, if it haven't received a new blockheight within y seconds
+- Stuck check, restart node if it haven't been able to bootstrap for 1000 seconds
 - Sendmytip to pooltool from the healthiest node (leader node)
 - Failover script, all nodes are elected as leaders for an epoch transition
+- Leader check, which makes sure that only one node is leader, while having blocks
+- Telegram bot 
+    - Notifies when a node is out of sync 
+    - Restart command can be executed
 
 ### Dependencies needed;
 - PyYAML
 - tabulate
 - requests
+- python-telegram-bot
+
+Can be installed using the requirements file;
+```python
+pip install -r requirements.txt
+```
 
 ### Setup
 Please use the config.json as a template to fill in your required needs. When this is set up correctly, you simply execute the script like
@@ -35,6 +45,18 @@ python jormungandr_controller.py
 ```
 
 It is **recommended** to run the script as a startup service, so the user can fully relax without any need of manual maintenance.
+
+### Telegram Bot
+
+To setup the telegram bot I recommend using this guide; https://medium.com/@mycodingblog/get-telegram-notification-when-python-script-finishes-running-a54f12822cdc
+
+Please fill in the token and chat id in the config file, and set activate to true
+
+### Telegram Bot Usage
+
+  Restart node; text the bot 'restart x', where x can be any number between node 0...n
+  
+  Example; restart 1
 
 ---------------------
 
