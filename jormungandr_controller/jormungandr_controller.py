@@ -34,6 +34,10 @@ LAST_SYNC_RESTART = config['Intervals']['LAST_SYNC_RESTART']
 SEND_MY_TIP_INTERVAL = config['Intervals']['SEND_MY_TIP']
 TRANSITION_CHECK_INTERVAL = config['Intervals']['TRANSITION_CHECK']
 LEADERS_CHECK_INTERVAL = config['Intervals']['LEADERS_CHECK']
+# Telegram Bot setup
+if config['TelegramBot']['activate']:
+    token = config['TelegramBot']['token']
+    chat_id = config['TelegramBot']['chat_id']
 #######################
 
 # _________________________________________________________________________________________________________________#
@@ -66,6 +70,7 @@ def node_init(node_number):
     nodes[f'node_{node_number}']['avgLatencyRecords'] = 10000
     nodes[f'node_{node_number}']['leadersLogs'] = []
     nodes[f'node_{node_number}']['numberOfConnections'] = 0
+    nodes[f'node_{node_number}']['lastTgNotified'] = time.time()
 
 
 def start_node(node_number):
@@ -145,7 +150,7 @@ def update_nodes_info():
 
     for i in range(number_of_nodes):
         try:
-            if node_stats['state'] == 'Running':
+            if nodes[f'node_{i}']['state'] == 'Running':
                 network_stats = get_network_stats(i)
                 nodes[f'node_{i}']['numberOfConnections'] = len(network_stats)
         except subprocess.CalledProcessError as e:
@@ -322,6 +327,16 @@ def send_my_tip():
         pass
 
 
+def shutdown_node(node_number):
+    ip_address , port = stakepool_config['rest']['listen'].split(':')
+    try:
+        output = subprocess.check_output([jcli_call_format , 'rest' , 'v0' , 'shutdown' , 'get' , '-h' ,
+                                f'http://{ip_address}:{int(port) + node_number}/api']).decode('utf-8')
+    except subprocess.CalledProcessError as e:
+        return ''
+    return output
+
+
 is_in_transition = False
 diff_epoch_end_seconds = 0
 
@@ -462,6 +477,46 @@ def leaders_check():
             pass
 
 
+import telegram
+last_message_update_id = 0
+
+
+def telegram_notifier():
+    threading.Timer(10, telegram_notifier).start()
+
+    global last_message_update_id
+
+    bot = telegram.Bot(token=token)
+
+    for i in range(number_of_nodes):
+        if time.time() - nodes[f'node_{i}']['timeSinceLastBlock'] > 1000 and nodes[f'node_{i}']['lastTgNotified'] + 600 < time.time():
+            bot.sendMessage(chat_id=chat_id, text=f"Node {i} has not been in sync for {round(time.time() - nodes[f'node_{i}']['timeSinceLastBlock'])} seconds")
+            nodes[f'node_{i}']['lastTgNotified'] = time.time()
+
+    updates = bot.get_updates(offset=last_message_update_id + 1)
+    if not updates:
+        return
+
+    last_message_received = updates[len(updates) - 1]
+    last_message_update_id = last_message_received['update_id']
+
+    if 'restart' in last_message_received['message']['text']:
+        node = [int(s) for s in last_message_received['message']['text'].split() if s.isdigit()][0]
+        if node > number_of_nodes - 1:
+            bot.sendMessage(chat_id=chat_id,
+                            text=f'No nodes with that number')
+            return
+
+        bot.sendMessage(chat_id=chat_id,
+                        text=f'Shutting down node {node}...')
+        if shutdown_node(node) != 'Success\n':
+            nodes[f'node_{node}']['process_id'].kill()
+        time.sleep(5)
+        start_node(node)
+        bot.sendMessage(chat_id=chat_id,
+                        text=f'Starting node {node}...')
+
+
 def clear():
     # check and make call for specific operating system
     _ = subprocess.call(['clear' if os.name == 'posix' else 'cls'])
@@ -470,6 +525,9 @@ def clear():
 def main():
     # Start nodes
     start_nodes()
+
+    if config['TelegramBot']['activate']:
+        telegram_notifier()
 
     # Begin threads
     update_nodes_info()

@@ -21,5 +21,10 @@
 		"SEND_MY_TIP": 30,
 		"TRANSITION_CHECK": 5,
 		"LEADERS_CHECK": 30
+	},
+	"TelegramBot": {
+		"activate": false,
+		"token": "",
+		"chat_id": ""
 	}
 }
