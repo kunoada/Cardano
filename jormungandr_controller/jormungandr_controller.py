@@ -20,11 +20,12 @@ jormungandr_call_format = config['Configuration']['jormungandr_call_format']
 stakepool_config_path = config['Configuration']['stakepool_config_path']
 node_secret_path = config['Configuration']['node_secret_path']
 genesis_hash = config['Configuration']['genesis_hash']
+pool_id = config['Configuration']['pool_id']
 number_of_nodes = config['Configuration']['number_of_nodes']
 # Pooltool sendmytip setup #
-url = config['PooltoolSetup']['url']
-pool_id = config['PooltoolSetup']['pool_id']
-user_id = config['PooltoolSetup']['user_id']
+if config['PooltoolSetup']['activate']:
+    url = config['PooltoolSetup']['url']
+    user_id = config['PooltoolSetup']['user_id']
 # All intervals are in seconds
 LEADER_ELECTION_INTERVAL = config['Intervals']['LEADER_ELECTION']
 TABLE_UPDATE_INTERVAL = config['Intervals']['TABLE_UPDATE']
@@ -327,6 +328,16 @@ def send_my_tip():
         pass
 
 
+def get_stakepool(node_number):
+    ip_address , port = stakepool_config['rest']['listen'].split(':')
+    try:
+        output = yaml.safe_load(subprocess.check_output([jcli_call_format , 'rest' , 'v0' , 'stake-pool' , 'get' , pool_id ,'-h' ,
+                                f'http://{ip_address}:{int(port) + node_number}/api']).decode('utf-8'))
+    except subprocess.CalledProcessError as e:
+        return []
+    return output
+
+
 def shutdown_node(node_number):
     ip_address , port = stakepool_config['rest']['listen'].split(':')
     try:
@@ -479,12 +490,13 @@ def leaders_check():
 
 import telegram
 last_message_update_id = 0
-
+current_total_stake = 0
 
 def telegram_notifier():
     threading.Timer(10, telegram_notifier).start()
 
     global last_message_update_id
+    global current_total_stake
 
     bot = telegram.Bot(token=token)
 
@@ -492,6 +504,21 @@ def telegram_notifier():
         if time.time() - nodes[f'node_{i}']['timeSinceLastBlock'] > 1000 and nodes[f'node_{i}']['lastTgNotified'] + 600 < time.time():
             bot.sendMessage(chat_id=chat_id, text=f"Node {i} has not been in sync for {round(time.time() - nodes[f'node_{i}']['timeSinceLastBlock'])} seconds")
             nodes[f'node_{i}']['lastTgNotified'] = time.time()
+
+    if not current_leader < 0:
+        total_stake = round(int(get_stakepool(current_leader)['total_stake']) / 1000000)
+
+        if current_total_stake > total_stake:
+            current_total_stake = total_stake
+
+            bot.sendMessage(chat_id=chat_id,
+                            text=f'Your total stake has been reduced to {current_total_stake} ADA')
+
+        elif current_total_stake < total_stake:
+            current_total_stake = total_stake
+
+            bot.sendMessage(chat_id=chat_id,
+                            text=f'Your total stake has increased to {current_total_stake} ADA')
 
     updates = bot.get_updates(offset=last_message_update_id + 1)
     if not updates:
@@ -526,17 +553,18 @@ def main():
     # Start nodes
     start_nodes()
 
-    if config['TelegramBot']['activate']:
-        telegram_notifier()
-
     # Begin threads
     update_nodes_info()
     leader_election()
     table_update()
     stuck_check()
-    send_my_tip()
     check_transition()
     leaders_check()
+
+    if config['PooltoolSetup']['activate']:
+        send_my_tip()
+    if config['TelegramBot']['activate']:
+        telegram_notifier()
 
 
 if __name__ == "__main__":

@@ -5,11 +5,12 @@
 		"stakepool_config_path": "stakepool-config.yaml",
 		"node_secret_path": "node-secret.yaml",
 		"genesis_hash": "8e4d2a343f3dcf9330ad9035b3e8d168e6728904262f2c434a4f8f934ec7b676",
+		"pool_id": "",
 		"number_of_nodes": 3
 	},
 	"PooltoolSetup": {
+		"activate": false,
 		"url": "https://api.pooltool.io/v0/sharemytip",
-		"pool_id": "",
 		"user_id": ""
 	},
 	"Intervals": {
