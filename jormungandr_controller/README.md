@@ -53,7 +53,9 @@ Please fill in the token and chat id in the config file
 ##### Usage
 
 **Actions**
+
   Restart node; text the bot 'restart x', where x can be any number between node 0...n
+  
   Example; restart 1
 
 ---------------------
