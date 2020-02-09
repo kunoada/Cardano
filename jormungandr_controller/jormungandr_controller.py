@@ -57,7 +57,8 @@ def node_init(node_number):
     nodes[f'node_{node_number}'] = {}
     # Start a jormungandr process
     nodes[f'node_{node_number}']['process_id'] = subprocess.Popen(
-        [jormungandr_call_format, '--genesis-block-hash', genesis_hash, '--config', tmp_config_file_path, '--secret', node_secret_path],
+        [jormungandr_call_format, '--genesis-block-hash', genesis_hash, '--config', tmp_config_file_path, '--secret',
+         node_secret_path],
         stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)  # TODO: node should start as leader??? maybe..
     # Give a timestamp when process is born
     nodes[f'node_{node_number}']['timeSinceLastBlock'] = int(time.time())
@@ -104,6 +105,20 @@ def start_nodes():
     # Start (number_of_nodes) new nodes
     for i in range(number_of_nodes):
         start_node(i)
+
+
+def on_start_node_info():
+    global nodes
+
+    for i in range(number_of_nodes):
+
+        if nodes[f'node_{i}']['state'] != 'Running':
+            threading.Timer(30, on_start_node_info).start()
+            return
+
+    for i in range(number_of_nodes):
+
+        nodes[f'node_{i}']['leadersLogs'] = get_leaders_logs(i)
 
 
 def update_nodes_info():
@@ -220,8 +235,7 @@ def stuck_check():
 
     for i in range(number_of_nodes):
 
-        if int(time.time()) - nodes[f'node_{i}']['timeSinceLastBlock'] > LAST_SYNC_RESTART and nodes[f'node_{i}'][
-            'state'] == 'Bootstrapping':
+        if int(time.time()) - nodes[f'node_{i}']['timeSinceLastBlock'] > LAST_SYNC_RESTART and nodes[f'node_{i}']['state'] == 'Bootstrapping':
             print(f'Node {i} is restarting due to stuck in bootstrapping')
             # Kill process
             nodes[f'node_{i}']['process_id'].kill()
@@ -234,7 +248,7 @@ def stuck_check():
 def time_between(d1, d2):
     d1 = datetime.datetime.strptime(d1, "%Y-%m-%dT%H:%M:%S%z")
     d2 = datetime.datetime.strptime(d2, "%Y-%m-%dT%H:%M:%S%z")
-    return abs((d2 - d1).seconds)
+    return (d2 - d1).total_seconds()
 
 
 def table_update():
@@ -384,6 +398,8 @@ def get_leaders_logs(node_number):
 
 
 def wait_for_leaders_logs():
+    global nodes
+
     for i in range(number_of_nodes):
         while 'wake_at_time' not in nodes[f'node_{i}']['leadersLogs']:
             nodes[f'node_{i}']['leadersLogs'] = get_leaders_logs(i)
@@ -563,6 +579,8 @@ def clear():
 def main():
     # Start nodes
     start_nodes()
+
+    on_start_node_info()
 
     # Begin threads
     update_nodes_info()
