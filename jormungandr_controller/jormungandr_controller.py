@@ -11,6 +11,7 @@ import re
 import requests
 import yaml
 from tabulate import tabulate
+import telegram
 
 config = json.load(open('my_config.json', 'r'))
 
@@ -179,7 +180,8 @@ def leader_election():
             lowest_latency = nodes[f'node_{i}']['avgLatencyRecords']
             healthiest_node = i
             continue
-        elif highest_blockheight == nodes[f'node_{i}']['lastBlockHeight'] and lowest_latency > nodes[f'node_{i}']['avgLatencyRecords']:
+        elif highest_blockheight == nodes[f'node_{i}']['lastBlockHeight'] and lowest_latency > nodes[f'node_{i}'][
+            'avgLatencyRecords']:
             lowest_latency = nodes[f'node_{i}']['avgLatencyRecords']
             healthiest_node = i
 
@@ -218,7 +220,8 @@ def stuck_check():
 
     for i in range(number_of_nodes):
 
-        if int(time.time()) - nodes[f'node_{i}']['timeSinceLastBlock'] > LAST_SYNC_RESTART and nodes[f'node_{i}']['state'] == 'Bootstrapping':
+        if int(time.time()) - nodes[f'node_{i}']['timeSinceLastBlock'] > LAST_SYNC_RESTART and nodes[f'node_{i}'][
+            'state'] == 'Bootstrapping':
             print(f'Node {i} is restarting due to stuck in bootstrapping')
             # Kill process
             nodes[f'node_{i}']['process_id'].kill()
@@ -266,7 +269,8 @@ def table_update():
         temp_list = []
         temp_list.extend(
             [f'Node {i}', nodes[f'node_{i}']['lastBlockTime'], nodes[f'node_{i}']['lastReceivedBlockTime'],
-             nodes[f'node_{i}']['latency'], nodes[f'node_{i}']['avgLatencyRecords'], nodes[f'node_{i}']['numberOfConnections']])
+             nodes[f'node_{i}']['latency'], nodes[f'node_{i}']['avgLatencyRecords'],
+             nodes[f'node_{i}']['numberOfConnections']])
         data.append(temp_list)
 
     print(tabulate(data, headers))
@@ -281,16 +285,20 @@ def table_update():
         elif not nodes[f'node_{current_leader}']['leadersLogs']:
             print('No blocks this epoch')
         else:
-            next_block_time = max_time = int(time.time()) + 86400 # + Max epoch time in seconds # TODO: change this to time.time() + slotDuration * slotPerEpoch
+            next_block_time = max_time = int(
+                time.time()) + 86400  # + Max epoch time in seconds # TODO: change this to time.time() + slotDuration * slotPerEpoch
             for log in nodes[f'node_{current_leader}']['leadersLogs']:
-                scheduled_at_time = datetime.datetime.strptime(re.sub(r"([\+-]\d\d):(\d\d)(?::(\d\d(?:.\d+)?))?", r"\1\2\3", log['scheduled_at_time']), "%Y-%m-%dT%H:%M:%S%z").timestamp()
+                scheduled_at_time = datetime.datetime.strptime(
+                    re.sub(r"([\+-]\d\d):(\d\d)(?::(\d\d(?:.\d+)?))?", r"\1\2\3", log['scheduled_at_time']),
+                    "%Y-%m-%dT%H:%M:%S%z").timestamp()
                 if int(time.time()) < scheduled_at_time < next_block_time:
                     next_block_time = scheduled_at_time
 
             if next_block_time == max_time:
                 print('No more blocks this epoch')
             else:
-                print(f"Time to next block creation: {str(datetime.timedelta(seconds=round(next_block_time - int(time.time()))))}")
+                print(
+                    f"Time to next block creation: {str(datetime.timedelta(seconds=round(next_block_time - int(time.time()))))}")
 
     print('________________________________')
 
@@ -329,20 +337,21 @@ def send_my_tip():
 
 
 def get_stakepool(node_number):
-    ip_address , port = stakepool_config['rest']['listen'].split(':')
+    ip_address, port = stakepool_config['rest']['listen'].split(':')
     try:
-        output = yaml.safe_load(subprocess.check_output([jcli_call_format , 'rest' , 'v0' , 'stake-pool' , 'get' , pool_id ,'-h' ,
-                                f'http://{ip_address}:{int(port) + node_number}/api']).decode('utf-8'))
+        output = yaml.safe_load(
+            subprocess.check_output([jcli_call_format, 'rest', 'v0', 'stake-pool', 'get', pool_id, '-h',
+                                     f'http://{ip_address}:{int(port) + node_number}/api']).decode('utf-8'))
     except subprocess.CalledProcessError as e:
         return []
     return output
 
 
 def shutdown_node(node_number):
-    ip_address , port = stakepool_config['rest']['listen'].split(':')
+    ip_address, port = stakepool_config['rest']['listen'].split(':')
     try:
-        output = subprocess.check_output([jcli_call_format , 'rest' , 'v0' , 'shutdown' , 'get' , '-h' ,
-                                f'http://{ip_address}:{int(port) + node_number}/api']).decode('utf-8')
+        output = subprocess.check_output([jcli_call_format, 'rest', 'v0', 'shutdown', 'get', '-h',
+                                          f'http://{ip_address}:{int(port) + node_number}/api']).decode('utf-8')
     except subprocess.CalledProcessError as e:
         return ''
     return output
@@ -353,18 +362,18 @@ diff_epoch_end_seconds = 0
 
 
 def get_network_stats(node_number):
-    ip_address , port = stakepool_config['rest']['listen'].split(':')
+    ip_address, port = stakepool_config['rest']['listen'].split(':')
     try:
         output = yaml.safe_load(
-                subprocess.check_output([jcli_call_format , 'rest' , 'v0' , 'network' , 'stats' , 'get' , '-h' ,
-                                f'http://{ip_address}:{int(port) + node_number}/api']).decode('utf-8'))
+            subprocess.check_output([jcli_call_format, 'rest', 'v0', 'network', 'stats', 'get', '-h',
+                                     f'http://{ip_address}:{int(port) + node_number}/api']).decode('utf-8'))
     except subprocess.CalledProcessError as e:
         return []
     return output
 
 
 def get_leaders_logs(node_number):
-    ip_address , port = stakepool_config['rest']['listen'].split(':')
+    ip_address, port = stakepool_config['rest']['listen'].split(':')
     try:
         output = yaml.safe_load(
             subprocess.check_output([jcli_call_format, 'rest', 'v0', 'leaders', 'logs', 'get', '-h',
@@ -376,7 +385,7 @@ def get_leaders_logs(node_number):
 
 def wait_for_leaders_logs():
     for i in range(number_of_nodes):
-        while 'wake_at_time:' not in nodes[f'node_{i}']['leadersLogs']:
+        while 'wake_at_time' not in nodes[f'node_{i}']['leadersLogs']:
             nodes[f'node_{i}']['leadersLogs'] = get_leaders_logs(i)
             time.sleep(1)
 
@@ -488,9 +497,9 @@ def leaders_check():
             pass
 
 
-import telegram
 last_message_update_id = 0
 current_total_stake = 0
+
 
 def telegram_notifier():
     threading.Timer(10, telegram_notifier).start()
@@ -501,8 +510,10 @@ def telegram_notifier():
     bot = telegram.Bot(token=token)
 
     for i in range(number_of_nodes):
-        if time.time() - nodes[f'node_{i}']['timeSinceLastBlock'] > 1000 and nodes[f'node_{i}']['lastTgNotified'] + 600 < time.time():
-            bot.sendMessage(chat_id=chat_id, text=f"Node {i} has not been in sync for {round(time.time() - nodes[f'node_{i}']['timeSinceLastBlock'])} seconds")
+        if time.time() - nodes[f'node_{i}']['timeSinceLastBlock'] > 1000 and nodes[f'node_{i}'][
+            'lastTgNotified'] + 600 < time.time():
+            bot.sendMessage(chat_id=chat_id,
+                            text=f"Node {i} has not been in sync for {round(time.time() - nodes[f'node_{i}']['timeSinceLastBlock'])} seconds")
             nodes[f'node_{i}']['lastTgNotified'] = time.time()
 
     if not current_leader < 0:
