@@ -400,10 +400,15 @@ def get_leaders_logs(node_number):
 def wait_for_leaders_logs():
     global nodes
 
+    start_timer = time.time()
+
     for i in range(number_of_nodes):
         while 'wake_at_time' not in nodes[f'node_{i}']['leadersLogs']:
             nodes[f'node_{i}']['leadersLogs'] = get_leaders_logs(i)
             time.sleep(1)
+            if start_timer + 10 < time.time():
+                break
+        send_telegram_message(f"Node {i} has {len(nodes[f'node_{i}']['leadersLogs'])} blocks assigned")
 
 
 settings = {}
@@ -515,6 +520,11 @@ def leaders_check():
 
 last_message_update_id = 0
 current_total_stake = 0
+
+
+def send_telegram_message(message):
+    bot = telegram.Bot(token=token)
+    bot.sendMessage(chat_id=chat_id, text=message)
 
 
 def telegram_notifier():
