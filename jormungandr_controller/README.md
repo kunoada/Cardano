@@ -73,12 +73,12 @@ Please fill in the token and chat id in the config file, and set activate to tru
 
 How to set up a systemd service;
 
-´´´
+```
 sudo nano /etc/systemd/system/jormungandr.service
-´´´
+```
 Add this to the file;
 
-´´´
+```
 [Unit]
 Description=Shelley Staking Pool
 
@@ -96,21 +96,21 @@ ExecStart=/usr/bin/python3 -u /path/to/Cardano/jormungandr_controller/jormungand
 
 [Install]
 WantedBy=multi-user.target
-´´´
+```
 You have to set up the WorkingDirectory so it fits the paths you have used in my_config.json
 
 Now enable the service, so it start on boot
-´´´
+```
 sudo systemctl enable jormungandr.service
-´´´
+```
 And start the service to run it right away
-´´´
+```
 sudo systemctl start jormungandr.service
-´´´
+```
 The outputs can now be followed with
-´´´
+```
 journalctl -f -u jormungandr.service
-´´´
+```
 
 
 ## Works on
