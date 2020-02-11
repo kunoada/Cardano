@@ -14,7 +14,9 @@ The jormungandr controller is automating all the dirty work a stakepool operator
 - Leader check, which makes sure that only one node is leader, while having blocks
 - Telegram bot 
     - Notifies when a node is out of sync 
-    - Restart command can be executed
+    - Restart command can be executed through bot
+    - If any changes in the amount of delegations
+    - How many blocks a node is assigned at epoch transition
 
 ### Dependencies needed;
 - PyYAML
@@ -59,6 +61,10 @@ Please fill in the token and chat id in the config file, and set activate to tru
   Example; restart 1
 
 ---------------------
+## Step-by-step
+
+- Either
+
 
 ## Works on
 Tested on both Windows and Linux. If anyone has tried this script on MAC, please let me know! :-)
