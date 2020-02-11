@@ -63,7 +63,13 @@ Please fill in the token and chat id in the config file, and set activate to tru
 ---------------------
 ## Step-by-step
 
-- Either
+- Download jormungandr_controller, either by using 'git clone' or download as a zip.
+- Install all needed dependencies; pip install -r requirements.txt
+- Rename the file called config.json to my_config.json (to protect against overwriting in case of new git pull)
+- Open my_config.json, and type in all information so it fit your setup.
+- This tool will only use one stakepool-config file, so based on the number of nodes, it will start each nodes from the port set in the stakepool-config and increment with one per node. ex. 3000...3000+number_of_nodes-1
+- To use the telegram bot, please use the guide linked above at **Telegram Bot** to set up a bot for yourself.
+- When the telegram bot is up and running, put in the token and chat id in my_config.json and set "activate" to true.
 
 
 ## Works on
