@@ -177,8 +177,6 @@ def update_nodes_info():
     threading.Timer(UPDATE_NODES_INTERVAL, update_nodes_info).start()
 
 
-# ./jcli rest v0 leaders logs get -h http://127.0.0.1:3100/api
-# ./jcli rest v0 node stats get -h http://127.0.0.1:3100/api
 def leader_election():
     global current_leader
     ip_address, port = stakepool_config['rest']['listen'].split(':')
@@ -569,7 +567,7 @@ def telegram_notifier():
     last_message_received = updates[len(updates) - 1]
     last_message_update_id = last_message_received['update_id']
 
-    if 'restart' in last_message_received['message']['text']:
+    if 'restart' in last_message_received['message']['text'].lower():
         node = [int(s) for s in last_message_received['message']['text'].split() if s.isdigit()][0]
         if node > number_of_nodes - 1:
             bot.sendMessage(chat_id=chat_id,

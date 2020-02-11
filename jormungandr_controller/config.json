@@ -14,14 +14,14 @@
 		"user_id": ""
 	},
 	"Intervals": {
-		"LEADER_ELECTION": 60,
+		"LEADER_ELECTION": 3,
 		"TABLE_UPDATE": 10,
-		"UPDATE_NODES": 10,
+		"UPDATE_NODES": 1,
 		"STUCK_CHECK": 500,
 		"LAST_SYNC_RESTART": 1000,
-		"SEND_MY_TIP": 30,
-		"TRANSITION_CHECK": 5,
-		"LEADERS_CHECK": 30
+		"SEND_MY_TIP": 15,
+		"TRANSITION_CHECK": 2,
+		"LEADERS_CHECK": 15
 	},
 	"TelegramBot": {
 		"activate": false,
