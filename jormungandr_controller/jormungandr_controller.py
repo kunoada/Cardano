@@ -315,10 +315,14 @@ def table_update():
     print('________________________________')
 
 
+import urllib
+
+
 def send_my_tip():
     threading.Timer(SEND_MY_TIP_INTERVAL, send_my_tip).start()
 
     global pooltoolmax
+    global url
 
     if current_leader < 0:
         return
@@ -336,8 +340,11 @@ def send_my_tip():
                   'lasthash': nodes[f'node_{current_leader}']['lastBlockHash'], 'lastpool': stats[168:168 + 64],
                   'lastParent': stats[104:104 + 64], 'lastSlot': f'0x{stats[24:24 + 8]}',
                   'lastEpoch': f'0x{stats[16:16 + 8]}'}
+
+        platform = urllib.parse.urlencode({"platform": "jormungandr_controller.py"})
+
         # sending get request and saving the response as response object
-        r = requests.get(url=url, params=PARAMS)
+        r = requests.get(url=url + '?' + platform, params=PARAMS)
 
         # extracting data in json format
         data = r.json()
