@@ -7,6 +7,9 @@ import subprocess
 import threading
 import time
 import re
+import urllib
+import string
+import locale
 
 import requests
 import yaml
@@ -45,11 +48,15 @@ if config['TelegramBot']['activate']:
 # _________________________________________________________________________________________________________________#
 
 # !DON'T TOUCH THESE VARIABLES! #
+locale.setlocale(locale.LC_ALL, '')
 stakepool_config = yaml.safe_load(open(stakepool_config_path, 'r'))
 tmp_config_file_path = 'tmp.config'
 current_leader = -1
 pooltoolmax = 0
 nodes = {}
+next_block = {'scheduled_at_time_string': '', 'scheduled_at_time_epoch': 0, 'wait_block_time_change': False}
+total_blocks_this_epoch = 0
+blocks_made_this_epoch = 0
 
 
 def node_init(node_number):
@@ -58,8 +65,7 @@ def node_init(node_number):
     # Start a jormungandr process
     nodes[f'node_{node_number}']['process_id'] = subprocess.Popen(
         [jormungandr_call_format, '--genesis-block-hash', genesis_hash, '--config', tmp_config_file_path, '--secret',
-         node_secret_path],
-        stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)  # TODO: node should start as leader??? maybe..
+         node_secret_path], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     # Give a timestamp when process is born
     nodes[f'node_{node_number}']['timeSinceLastBlock'] = int(time.time())
     nodes[f'node_{node_number}']['lastBlockHeight'] = 0
@@ -117,12 +123,25 @@ def on_start_node_info():
             return
 
     for i in range(number_of_nodes):
-
         nodes[f'node_{i}']['leadersLogs'] = get_leaders_logs(i)
+
+
+num_connection_update = 0
+leaders_log_update = 0
+validate_block_timer = 0
+new_block_minted = False
+block_minted_update = 0
 
 
 def update_nodes_info():
     global nodes
+    global num_connection_update
+    global validate_block_timer
+    global leaders_log_update
+    global blocks_made_this_epoch
+    global new_block_minted
+    global block_minted_update
+
     ip_address, port = stakepool_config['rest']['listen'].split(':')
 
     for i in range(number_of_nodes):
@@ -165,14 +184,34 @@ def update_nodes_info():
             nodes[f'node_{i}']['state'] = 'Starting'
             continue
 
-    for i in range(number_of_nodes):
-        try:
-            if nodes[f'node_{i}']['state'] == 'Running':
-                network_stats = get_network_stats(i)
-                nodes[f'node_{i}']['numberOfConnections'] = len(network_stats)
-        except subprocess.CalledProcessError as e:
-            print('Could not get network stats')
-            continue
+    num_connection_update += 1
+    if num_connection_update >= 20:
+        num_connection_update = 0
+        for i in range(number_of_nodes):
+            try:
+                if nodes[f'node_{i}']['state'] == 'Running':
+                    network_stats = get_network_stats(i)
+                    nodes[f'node_{i}']['numberOfConnections'] = len(network_stats)
+            except subprocess.CalledProcessError as e:
+                print('Could not get network stats')
+                continue
+
+    if not current_leader < 0:
+        # test()
+        leaders_log_update += 1
+        if leaders_log_update >= 60:
+            leaders_log_update = 0
+            update_leaders_logs()
+        get_next_block_time()
+
+    block_minted_update += 1
+    if block_minted_update >= 60:
+        block_minted_update = 0
+        # Check if a new block is made
+        blocks_this_epoch = get_blocks_made_this_epoch()
+        if blocks_this_epoch > blocks_made_this_epoch:
+            blocks_made_this_epoch = blocks_this_epoch
+            new_block_minted = True
 
     threading.Timer(UPDATE_NODES_INTERVAL, update_nodes_info).start()
 
@@ -233,7 +272,8 @@ def stuck_check():
 
     for i in range(number_of_nodes):
 
-        if int(time.time()) - nodes[f'node_{i}']['timeSinceLastBlock'] > LAST_SYNC_RESTART and nodes[f'node_{i}']['state'] == 'Bootstrapping':
+        if int(time.time()) - nodes[f'node_{i}']['timeSinceLastBlock'] > LAST_SYNC_RESTART and nodes[f'node_{i}'][
+            'state'] == 'Bootstrapping':
             print(f'Node {i} is restarting due to stuck in bootstrapping')
             # Kill process
             nodes[f'node_{i}']['process_id'].kill()
@@ -241,6 +281,11 @@ def stuck_check():
             time.sleep(5)
             # Start a jormungandr process
             start_node(i)
+
+
+def update_leaders_logs():
+    for i in range(number_of_nodes):
+        nodes[f'node_{i}']['leadersLogs'] = get_leaders_logs(i)
 
 
 def time_between(d1, d2):
@@ -251,6 +296,8 @@ def time_between(d1, d2):
 
 def table_update():
     threading.Timer(TABLE_UPDATE_INTERVAL, table_update).start()
+
+    global scheduled_at_time_string
 
     headers = ['Node', 'State', 'Block height', 'pooltoolmax', 'Delta', 'Uptime', 'Time since last sync',
                'Current leader']
@@ -272,7 +319,7 @@ def table_update():
 
     # clear()
     print(tabulate(data, headers))
-    print('')
+    print('-')
 
     headers = ['Node', 'lastBlockTime', 'lastReceivedBlockTime', 'latency', 'avg5LastLatency', 'connections']
     data = []
@@ -286,36 +333,51 @@ def table_update():
         data.append(temp_list)
 
     print(tabulate(data, headers))
-    print('')
+    print('-')
     print(f'Time to next epoch: {str(datetime.timedelta(seconds=round(diff_epoch_end_seconds)))}')
-    print('')
 
     if not current_leader < 0:
-        print(f"Number of blocks this epoch: {len(nodes[f'node_{current_leader}']['leadersLogs'])}")
         if is_in_transition:
             print('All nodes are currently leaders while no nodes has been elected for block creation')
         elif not nodes[f'node_{current_leader}']['leadersLogs']:
             print('No blocks this epoch')
         else:
-            next_block_time = max_time = int(
-                time.time()) + 86400  # + Max epoch time in seconds # TODO: change this to time.time() + slotDuration * slotPerEpoch
-            for log in nodes[f'node_{current_leader}']['leadersLogs']:
-                scheduled_at_time = datetime.datetime.strptime(
-                    re.sub(r"([\+-]\d\d):(\d\d)(?::(\d\d(?:.\d+)?))?", r"\1\2\3", log['scheduled_at_time']),
-                    "%Y-%m-%dT%H:%M:%S%z").timestamp()
-                if int(time.time()) < scheduled_at_time < next_block_time:
-                    next_block_time = scheduled_at_time
-
-            if next_block_time == max_time:
+            if next_block['scheduled_at_time_epoch'] == 0:
                 print('No more blocks this epoch')
             else:
                 print(
-                    f"Time to next block creation: {str(datetime.timedelta(seconds=round(next_block_time - int(time.time()))))}")
+                    f"Time to your next block: {str(datetime.timedelta(seconds=round(next_block['scheduled_at_time_epoch'] - int(time.time()))))}")
+        print(f"Number of total blocks this epoch: {total_blocks_this_epoch}")
+        print(f'Number of minted blocks this epoch: {blocks_made_this_epoch}')
+        counter = 0
+        for i in range(len(nodes[f'node_{current_leader}']['leadersLogs'])):
+            if 'Pending' == nodes[f'node_{current_leader}']['leadersLogs'][i]['status']:
+                counter += 1
+        print(f"Number of blocks left this epoch: {counter}")
 
-    print('________________________________')
 
+def get_next_block_time():
+    global next_block
 
-import urllib
+    next_block_epoch = max_time = int(
+        time.time()) + 86400  # + Max epoch time in seconds # TODO: change this to time.time() + slotDuration * slotPerEpoch
+
+    for log in nodes[f'node_{current_leader}']['leadersLogs']:
+
+        scheduled_at_time = datetime.datetime.strptime(
+            re.sub(r"([\+-]\d\d):(\d\d)(?::(\d\d(?:.\d+)?))?", r"\1\2\3", log['scheduled_at_time']),
+            "%Y-%m-%dT%H:%M:%S%z").timestamp()
+
+        if int(time.time()) < scheduled_at_time < next_block_epoch:
+
+            next_block_epoch = round(scheduled_at_time)
+
+            if next_block_epoch != next_block['scheduled_at_time_epoch']:
+
+                next_block['scheduled_at_time_epoch'] = next_block_epoch
+
+    if next_block_epoch == max_time:
+        next_block['scheduled_at_time_epoch'] = 0
 
 
 def send_my_tip():
@@ -402,21 +464,32 @@ def get_leaders_logs(node_number):
     return output
 
 
+def is_leaders_logs_not_empty(node_number):
+    for field in nodes[f'node_{node_number}']['leadersLogs']:
+        if 'wake_at_time' in field:
+            return True
+    return False
+
+
 def wait_for_leaders_logs():
     global nodes
+    global total_blocks_this_epoch
 
     for i in range(number_of_nodes):
 
         start_timer = time.time()
 
-        while 'wake_at_time' not in nodes[f'node_{i}']['leadersLogs']:
+        while 1:
+            if is_leaders_logs_not_empty(i):
+                break
 
             nodes[f'node_{i}']['leadersLogs'] = get_leaders_logs(i)
             time.sleep(1)
 
-            if start_timer + 10 < time.time():
+            if start_timer + 20 < time.time():
                 break
 
+        print(f"Node {i}: \n {nodes[f'node_{i}']['leadersLogs']}")
         if config['TelegramBot']['activate']:
             send_telegram_message(f"Node {i} has {len(nodes[f'node_{i}']['leadersLogs'])} blocks assigned")
 
@@ -433,6 +506,9 @@ def check_transition():
     global diff_epoch_end_seconds
     global settings
     global is_new_epoch
+    global total_blocks_this_epoch
+    global blocks_made_this_epoch
+    global known_blocks
 
     if current_leader < 0:
         return
@@ -475,6 +551,7 @@ def check_transition():
         time.sleep(slot_duration + TRANSITION_CHECK_INTERVAL - 1)
 
         wait_for_leaders_logs()  # This is an infinite loop, if the nodes are not elected for any blocks.
+        total_blocks_this_epoch = len(nodes[f'node_{current_leader}']['leadersLogs'])
 
         for i in range(number_of_nodes):
             try:
@@ -486,6 +563,8 @@ def check_transition():
             except subprocess.CalledProcessError as e:
                 continue
 
+        known_blocks = []
+        blocks_made_this_epoch = 0
         is_new_epoch = True
         is_in_transition = False
 
@@ -542,9 +621,12 @@ def telegram_notifier():
 
     global last_message_update_id
     global current_total_stake
+    global blocks_made_this_epoch
+    global new_block_minted
 
     bot = telegram.Bot(token=token)
 
+    # Notify if out of sync for more than 1000 sec
     for i in range(number_of_nodes):
         if time.time() - nodes[f'node_{i}']['timeSinceLastBlock'] > 1000 and nodes[f'node_{i}'][
             'lastTgNotified'] + 600 < time.time():
@@ -552,6 +634,7 @@ def telegram_notifier():
                             text=f"Node {i} has not been in sync for {round(time.time() - nodes[f'node_{i}']['timeSinceLastBlock'])} seconds")
             nodes[f'node_{i}']['lastTgNotified'] = time.time()
 
+    # Notifidy if current stake has changed
     if not current_leader < 0:
         total_stake = round(int(get_stakepool(current_leader)['total_stake']) / 1000000)
 
@@ -559,13 +642,18 @@ def telegram_notifier():
             current_total_stake = total_stake
 
             bot.sendMessage(chat_id=chat_id,
-                            text=f'Your total stake has been reduced to {current_total_stake} ADA')
+                            text=f'Your total stake has been reduced to {current_total_stake:n} ADA')
 
         elif current_total_stake < total_stake:
             current_total_stake = total_stake
 
             bot.sendMessage(chat_id=chat_id,
-                            text=f'Your total stake has increased to {current_total_stake} ADA')
+                            text=f'Your total stake has increased to {current_total_stake:n} ADA')
+
+    if new_block_minted:
+        bot.sendMessage(chat_id=chat_id,
+                        text=f'Pooltool; You just minted a new block! Total blocks minted this epoch: {blocks_made_this_epoch}')
+        new_block_minted = False
 
     updates = bot.get_updates(offset=last_message_update_id + 1)
     if not updates:
@@ -587,6 +675,8 @@ def telegram_notifier():
             nodes[f'node_{node}']['process_id'].kill()
         time.sleep(5)
         start_node(node)
+        on_start_node_info()
+
         bot.sendMessage(chat_id=chat_id,
                         text=f'Starting node {node}...')
 
@@ -596,11 +686,107 @@ def clear():
     _ = subprocess.call(['clear' if os.name == 'posix' else 'cls'])
 
 
+def get_next_block_hash(
+        block_hash):  # ./jcli rest v0 block e207f3e6cd6f76340f59b214bff4508f8cb80329f812e082a2bb4c2c7f4e0a88 next-id get —host
+    ip_address, port = stakepool_config['rest']['listen'].split(':')
+    try:
+        output = subprocess.check_output([jcli_call_format, 'rest', 'v0', 'block', block_hash, 'next-id', 'get', '-h',
+                                          f'http://{ip_address}:{int(port) + current_leader}/api']).decode(
+            'utf-8').replace('\n', '')
+    except subprocess.CalledProcessError as e:
+        return 'error'
+    return output
+
+
+def get_block_hash_from_leaders_logs():
+    global next_block
+
+    for i in range(len(nodes[f'node_{current_leader}']['leadersLogs'])):
+
+        if next_block['scheduled_at_time_string'] == nodes[f'node_{current_leader}']['leadersLogs'][i][
+            'scheduled_at_time']:
+            if 'Rejected' == nodes[f'node_{current_leader}']['leadersLogs'][i]['status']:
+                send_telegram_message(nodes[f'node_{current_leader}']['leadersLogs'][i]['status']['reason'])
+                next_block['wait_block_time_change'] = False
+            if 'Block' == nodes[f'node_{current_leader}']['leadersLogs'][i]['status']:
+                block_hash = nodes[f'node_{current_leader}']['leadersLogs'][i]['status']['Block']['block']
+                print(block_hash)
+                string_test = get_next_block_hash(block_hash)
+                if string_test == 'error':
+                    print('block lost')
+                    send_telegram_message('You just lost a block')
+                    next_block['wait_block_time_change'] = False
+                if all(c in string.hexdigits for c in string_test):
+                    print('Block won')
+                    send_telegram_message('test mesthod: You just won a block')
+                    next_block['wait_block_time_change'] = False
+                print(string_test)
+                print(type(string_test))
+            else:
+                return
+
+
+def get_blocks_made_this_epoch():
+    url2 = f'https://pooltool.s3-us-west-2.amazonaws.com/8e4d2a3/pools/{pool_id}/livestats.json'
+    try:
+        r = requests.get(url=url2)
+    except requests.exceptions.RequestException as e:
+        return 0
+    return r.json()['epochblocks']
+
+
+def set_variables_on_start():
+    global blocks_made_this_epoch
+
+    blocks_made_this_epoch = get_blocks_made_this_epoch()
+
+
+known_blocks = []
+
+
+# This method is a test...
+def check_new_blocks_minted():
+    threading.Timer(60, check_new_blocks_minted).start()
+    global known_blocks
+    global blocks_made_this_epoch
+
+    if current_leader < 0:
+        return
+
+    for l in nodes[f'node_{current_leader}']['leadersLogs']:
+        print(l['status'])
+        if l['status'] != 'Pending':
+
+            if l['scheduled_at_time'] in known_blocks:
+                continue
+
+            if l['status'] == 'Block':
+                block_hash = l['status']['Block']['block']
+                print(block_hash)
+                response = get_next_block_hash(block_hash)
+
+                if response == 'error':
+                    print('block lost')
+                    send_telegram_message('test mesthod: You just lost a block')
+                    known_blocks.append(l['scheduled_at_time'])
+
+                elif all(c in string.hexdigits for c in response):
+                    print('Block won')
+                    send_telegram_message('test mesthod: You just won a block')
+                    known_blocks.append(l['scheduled_at_time'])
+                    blocks_made_this_epoch += 1
+
+            elif l['status'] == 'Rejected':
+                send_telegram_message(f"test mesthod: Block got rejected with message: {l['status']['Rejected']}")
+                known_blocks.append(l['scheduled_at_time'])
+
+
 def main():
     # Start nodes
     start_nodes()
 
-    on_start_node_info()
+    set_variables_on_start()
+    # on_start_node_info()
 
     # Begin threads
     update_nodes_info()
@@ -609,6 +795,7 @@ def main():
     stuck_check()
     check_transition()
     leaders_check()
+    # check_new_blocks_minted()
 
     if config['PooltoolSetup']['activate']:
         send_my_tip()

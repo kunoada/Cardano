@@ -15,7 +15,7 @@
 	},
 	"Intervals": {
 		"LEADER_ELECTION": 3,
-		"TABLE_UPDATE": 10,
+		"TABLE_UPDATE": 1,
 		"UPDATE_NODES": 1,
 		"STUCK_CHECK": 500,
 		"LAST_SYNC_RESTART": 1000,

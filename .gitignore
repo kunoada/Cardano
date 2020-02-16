@@ -18,4 +18,4 @@ jcli.exe
 jormungandr.exe
 jormungandr-v*
 storage*
-test_documents*
+test*
