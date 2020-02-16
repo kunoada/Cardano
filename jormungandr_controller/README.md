@@ -1,13 +1,12 @@
 # jormungandr_controller
 The jormungandr controller is automating all the dirty work a stakepool operator needs to do!
 
+![Image of status update](https://raw.githubusercontent.com/kunoada/Cardano/master/jormungandr_controller/jormungandr_controller_stat_update.PNG)
+
 ## Features
 - Starts x amount of nodes
 - Based on an invertal of x seconds it will make sure the healthiest node is the leader
 - Based on an invertal of x seconds it will print out the status of all nodes 
-
-![Image of status update](https://raw.githubusercontent.com/kunoada/Cardano/master/jormungandr_controller/jormungandr_controller_stat_update.PNG)
-
 - Stuck check, restart node if it haven't been able to bootstrap for 1000 seconds
 - Sendmytip to pooltool from the healthiest node (leader node)
 - Failover script, all nodes are elected as leaders for an epoch transition
