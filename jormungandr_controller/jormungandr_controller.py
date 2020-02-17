@@ -63,9 +63,10 @@ def node_init(node_number):
     global nodes
     nodes[f'node_{node_number}'] = {}
     # Start a jormungandr process
+    f = open(f'log_{node_number}', 'w')
     nodes[f'node_{node_number}']['process_id'] = subprocess.Popen(
         [jormungandr_call_format, '--genesis-block-hash', genesis_hash, '--config', tmp_config_file_path, '--secret',
-         node_secret_path], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+         node_secret_path], stdout=f, stderr=subprocess.STDOUT)#subprocess.DEVNULL
     # Give a timestamp when process is born
     nodes[f'node_{node_number}']['timeSinceLastBlock'] = int(time.time())
     nodes[f'node_{node_number}']['lastBlockHeight'] = 0
@@ -489,10 +490,6 @@ def wait_for_leaders_logs():
             if start_timer + 20 < time.time():
                 break
 
-        print(f"Node {i}: \n {nodes[f'node_{i}']['leadersLogs']}")
-        if config['TelegramBot']['activate']:
-            send_telegram_message(f"Node {i} has {len(nodes[f'node_{i}']['leadersLogs'])} blocks assigned")
-
 
 settings = {}
 is_new_epoch = True
@@ -551,7 +548,6 @@ def check_transition():
         time.sleep(slot_duration + TRANSITION_CHECK_INTERVAL - 1)
 
         wait_for_leaders_logs()  # This is an infinite loop, if the nodes are not elected for any blocks.
-        total_blocks_this_epoch = len(nodes[f'node_{current_leader}']['leadersLogs'])
 
         for i in range(number_of_nodes):
             try:
@@ -564,9 +560,18 @@ def check_transition():
                 continue
 
         known_blocks = []
-        blocks_made_this_epoch = 0
         is_new_epoch = True
         is_in_transition = False
+
+        # Wait some time to make sure that leaders logs are a complete list
+        time.sleep(60)
+        update_leaders_logs()
+        for i in range(number_of_nodes):
+            print(f"Node {i}: \n {nodes[f'node_{i}']['leadersLogs']}")
+            if config['TelegramBot']['activate']:
+                send_telegram_message(f"Node {i} has {len(nodes[f'node_{i}']['leadersLogs'])} blocks assigned")
+        total_blocks_this_epoch = len(nodes[f'node_{current_leader}']['leadersLogs'])
+        blocks_made_this_epoch = 0
 
 
 # Make sure only one node is leader. (only for safety reasons)! This should be done regularly.
