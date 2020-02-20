@@ -10,6 +10,7 @@ import re
 import urllib
 import string
 import locale
+import multiprocessing
 
 import requests
 import yaml
@@ -63,10 +64,10 @@ def node_init(node_number):
     global nodes
     nodes[f'node_{node_number}'] = {}
     # Start a jormungandr process
-    f = open(f'log_{node_number}', 'w')
+    # f = open(f'log_{node_number}', 'w')
     nodes[f'node_{node_number}']['process_id'] = subprocess.Popen(
         [jormungandr_call_format, '--genesis-block-hash', genesis_hash, '--config', tmp_config_file_path, '--secret',
-         node_secret_path], stdout=f, stderr=subprocess.STDOUT)#subprocess.DEVNULL
+         node_secret_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)# supress output: subprocess.DEVNULL # read output: subprocess.PIPE
     # Give a timestamp when process is born
     nodes[f'node_{node_number}']['timeSinceLastBlock'] = int(time.time())
     nodes[f'node_{node_number}']['lastBlockHeight'] = 0
@@ -98,6 +99,9 @@ def start_node(node_number):
         # Public_address
         x, ip, ip_address, comm_p, port = stakepool_config_temp['p2p']['public_address'].split('/')
         stakepool_config_temp['p2p']['public_address'] = f'/{ip}/{ip_address}/{comm_p}/{int(port) + node_number}'
+        # Storage
+        storage = stakepool_config_temp['storage']
+        stakepool_config_temp['storage'] = f'{storage}_{node_number}'
         # Save in temp config file
         json.dump(stakepool_config_temp, tmp_config_file)
 
@@ -786,6 +790,28 @@ def check_new_blocks_minted():
                 known_blocks.append(l['scheduled_at_time'])
 
 
+def stuck_check_not():
+
+    while True:
+
+        for i in range(number_of_nodes):
+
+            line = nodes[f'node_{i}']['process_id'].stdout.readline()
+
+            if (b'stuck_notifier' or b'task panicked' or b'cannot schedule getting next block') in line:
+                print(f'Restarting node {i} because of stuck notifier')
+
+                if config['TelegramBot']['activate']:
+                    send_telegram_message(f'Restarting node {i} with message; \n {line}')
+
+                if shutdown_node(i) != 'Success\n':
+                    nodes[f'node_{i}']['process_id'].kill()
+
+                time.sleep(5)
+                start_node(i)
+                on_start_node_info()
+
+
 def main():
     # Start nodes
     start_nodes()
@@ -806,6 +832,8 @@ def main():
         send_my_tip()
     if config['TelegramBot']['activate']:
         telegram_notifier()
+
+    stuck_check_not()
 
 
 if __name__ == "__main__":
