@@ -1,7 +1,7 @@
 # jormungandr_controller
 The jormungandr controller is automating all the dirty work a stakepool operator needs to do!
 
-![Image of status update](https://raw.githubusercontent.com/kunoada/Cardano/master/jormungandr_controller/jormungandr_controller_stat_update.PNG)
+![Image of status update](https://raw.githubusercontent.com/kunoada/Cardano/master/gallery/jormungandr_controller_stat_update.PNG)
 
 ## Features
 - Starts x amount of nodes
