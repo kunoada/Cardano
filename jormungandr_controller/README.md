@@ -55,9 +55,11 @@ Please fill in the token and chat id in the config file, and set activate to tru
 
 ### Telegram Bot Usage
 
-  Restart node; text the bot 'restart x', where x can be any number between node 0...n
-  
-  Example; restart 1
+  | Command | Description
+  | --- | --- |
+  | Restart [n] | Restart node n |
+  | Stats | Will return an output with the stats of all nodes | 
+
 
 ---------------------
 ## Step-by-step
@@ -111,6 +113,10 @@ The outputs can now be followed with
 journalctl -f -u jormungandr.service
 ```
 
+To get a nice way of watching the output (adjust 17 to the number of lines that fit your setup)
+```
+watch -n 1 journalctl -u jormungandr.service -n 17
+```
 
 ## Works on
 Tested on both Windows and Linux. If anyone has tried this script on MAC, please let me know! :-)
