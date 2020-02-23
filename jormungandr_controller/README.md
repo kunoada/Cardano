@@ -7,10 +7,12 @@ The jormungandr controller is automating all the dirty work a stakepool operator
 - Starts x amount of nodes
 - Based on an invertal of x seconds it will make sure the healthiest node is the leader
 - Based on an invertal of x seconds it will print out the status of all nodes 
-- Stuck check, restart node if it haven't been able to bootstrap for 1000 seconds
+- Bootstrap stuck check, restart node if it haven't been able to bootstrap for 1000 seconds
+- Activate/deactive a stuck check notifier
+- Single or multi storages is configurable
 - Sendmytip to pooltool from the healthiest node (leader node)
 - Failover script, all nodes are elected as leaders for an epoch transition
-- Leader check, which makes sure that only one node is leader, while having blocks
+- Leader check, which makes sure that only one node is leader
 - Telegram bot 
     - Notifies when a node is out of sync 
     - Restart command can be executed through bot
