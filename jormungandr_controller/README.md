@@ -16,6 +16,8 @@ The jormungandr controller is automating all the dirty work a stakepool operator
     - Restart command can be executed through bot
     - If any changes in the amount of delegations
     - How many blocks a node is assigned at epoch transition
+    - Notifies with a sorted schedule of block times at epoch transition
+    - Gives you the simple stats of all nodes
 
 ### Dependencies needed;
 - PyYAML
@@ -68,7 +70,7 @@ Please fill in the token and chat id in the config file, and set activate to tru
 - Install all needed dependencies; pip install -r requirements.txt
 - Rename the file called config.json to my_config.json (to protect against overwriting in case of new git pull)
 - Open my_config.json, and type in all information so it fit your setup.
-- This tool will only use one stakepool-config file, so based on the number of nodes, it will start each nodes from the port set in the stakepool-config and increment with one per node. ex. 3000...3000+number_of_nodes-1
+- This tool will only use one stakepool-config file, so based on the number of nodes, it will start each nodes from the port set in the stakepool-config and increment with one per node. ex. Node 0 will use port 3000, Node 1 will use port 3001, etc etc..
 - To use the telegram bot, please use the guide linked above at **Telegram Bot** to set up a bot for yourself.
 - When the telegram bot is up and running, put in the token and chat id in my_config.json and set "activate" to true.
 
@@ -92,8 +94,8 @@ LimitNOFILE=16384
 
 User=<your user>
 Group=users
-WorkingDirectory=/path/to/???
-ExecStart=/usr/bin/python3 -u /path/to/Cardano/jormungandr_controller/jormungandr_controller.py
+WorkingDirectory=</path/to/Cardano/jormungandr_controller/>
+ExecStart=/usr/bin/python3 -u </path/to/Cardano/jormungandr_controller/jor_controller.py>
 
 [Install]
 WantedBy=multi-user.target
