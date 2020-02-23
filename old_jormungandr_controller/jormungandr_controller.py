@@ -64,7 +64,7 @@ def node_init(node_number):
     global nodes
     nodes[f'node_{node_number}'] = {}
     # Start a jormungandr process
-    # f = open(f'log_{node_number}', 'w')
+    f = open(f'log_{node_number}', 'w')
     nodes[f'node_{node_number}']['process_id'] = subprocess.Popen(
         [jormungandr_call_format, '--genesis-block-hash', genesis_hash, '--config', tmp_config_file_path, '--secret',
          node_secret_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)# supress output: subprocess.DEVNULL # read output: subprocess.PIPE
@@ -100,8 +100,8 @@ def start_node(node_number):
         x, ip, ip_address, comm_p, port = stakepool_config_temp['p2p']['public_address'].split('/')
         stakepool_config_temp['p2p']['public_address'] = f'/{ip}/{ip_address}/{comm_p}/{int(port) + node_number}'
         # Storage
-        storage = stakepool_config_temp['storage']
-        stakepool_config_temp['storage'] = f'{storage}_{node_number}'
+        # storage = stakepool_config_temp['storage']
+        # stakepool_config_temp['storage'] = f'{storage}_{node_number}'
         # Save in temp config file
         json.dump(stakepool_config_temp, tmp_config_file)
 
@@ -833,7 +833,7 @@ def main():
     if config['TelegramBot']['activate']:
         telegram_notifier()
 
-    stuck_check_not()
+    # stuck_check_not()
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@
 
 # Python
 venv
+*pycache*
 
 # update_trused peers
 update_trusted_peers/venv
@@ -12,6 +13,14 @@ update_trusted_peers/.idea
 jormungandr_controller/venv
 jormungandr_controller/log_*
 jormungandr_controller/.idea
+jormungandr_controller/log_*
+*my_config.json
+*tmp*
+
+# old jormungandr_controller
+old_jormungandr_controller/venv
+old_jormungandr_controller/log_*
+old_jormungandr_controller/.idea
 *my_config.json
 *tmp*
 

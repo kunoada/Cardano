@@ -6,26 +6,30 @@
 		"node_secret_path": "node-secret.yaml",
 		"genesis_hash": "8e4d2a343f3dcf9330ad9035b3e8d168e6728904262f2c434a4f8f934ec7b676",
 		"pool_id": "",
-		"number_of_nodes": 3
+		"number_of_nodes": 3,
+		"use_seperate_storage": false,	#use a storage for each node
+		"log_to_file": false			#log output from each node to a file
 	},
 	"PooltoolSetup": {
 		"activate": false,
-		"url": "https://api.pooltool.io/v0/sharemytip",
 		"user_id": ""
-	},
-	"Intervals": {
-		"LEADER_ELECTION": 3,
-		"TABLE_UPDATE": 1,
-		"UPDATE_NODES": 1,
-		"STUCK_CHECK": 500,
-		"LAST_SYNC_RESTART": 1000,
-		"SEND_MY_TIP": 15,
-		"TRANSITION_CHECK": 2,
-		"LEADERS_CHECK": 15
 	},
 	"TelegramBot": {
 		"activate": false,
 		"token": "",
 		"chat_id": ""
+	},
+	"StuckCheck": {
+		"activate": false
+	},
+	"Intervals": {
+		"LEADER_ELECTION": 3,			#how often to check who should be leader
+		"PRINT_UPDATE": 1,				#how often to print
+		"UPDATE_NODES": 1,				#how often to update node stats
+		"BOOTSTRAP_STUCK_CHECK": 500,	#how often to check for bootstrap stuck check
+		"LAST_SYNC_RESTART": 1000,		#when to restart on bootstrap stuck
+		"SEND_MY_TIP": 15,				#how often to send my tip (minimum 15)
+		"TRANSITION_CHECK": 2,			#how often to check for epoch transition
+		"LEADERS_CHECK": 15				#how often to check that only one node is leader
 	}
 }
