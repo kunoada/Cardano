@@ -125,4 +125,4 @@ watch -n 1 journalctl -u jormungandr.service -n 17
 ## Works on
 Tested on both Windows and Linux. If anyone has tried this script on MAC, please let me know! :-)
 # OBS 
-When using this script, it is important to configure the variables inside the config file!
+Python version needs to be 3.6 or higher!
