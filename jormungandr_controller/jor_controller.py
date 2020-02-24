@@ -426,7 +426,7 @@ class JorController:
 def main():
     jor_controller = JorController()
     jor_controller.run()
-import base64
+
 
 if __name__ == "__main__":
     main()
