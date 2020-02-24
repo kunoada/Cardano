@@ -304,7 +304,7 @@ class JorController:
             if int(time.time()) - node.timeSinceLastBlock > 1000 and node.lastTgNotified + 600 < int(time.time()):
                 self.telegram.send_message(
                     f"Node {node.unique_id} has not been in sync for {round(int(time.time()) - node.timeSinceLastBlock)} seconds")
-                self.node.lastTgNotified = int(time.time())
+                node.lastTgNotified = int(time.time())
 
         # Notify if current stake has changed
         if not self.current_leader < 0:
