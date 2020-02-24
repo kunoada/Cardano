@@ -1,11 +1,27 @@
-import yaml
 import json
+import sys
+import os.path
+
+
+def validate_file_exist(path):
+    if os.path.isfile(path):
+        return True
+    else:
+        print(f"{path} is not a valid file, please check the path you have given in the config file!")
+        return False
 
 
 class Config:
 
     def __init__(self):
-        config = json.load(open('my_config.json', 'r'))
+        try:
+            config = json.load(open('my_config.json', 'r'))
+        except json.JSONDecodeError as jd:
+            print("Invalid json format in config file!\n"
+                  "Remember to remove all comments!\n"
+                  "You can use; https://jsonlint.com/, to validate json")
+            print(jd)
+            sys.exit(1)
 
         # Base configs
         self.jcli_call_format = config['Configuration']['jcli_call_format']
@@ -41,4 +57,10 @@ class Config:
 
         self.stuck_check_active = config['StuckCheck']['activate']
 
+        self.validate_configurations()
+
         print('Loaded configurations')
+
+    def validate_configurations(self):
+        if not validate_file_exist(self.stakepool_config_path) or not validate_file_exist(self.node_secret_path):
+            sys.exit(1)
