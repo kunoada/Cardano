@@ -119,7 +119,7 @@ journalctl -f -u jormungandr.service
 
 To get a nice way of watching the output (adjust 17 to the number of lines that fit your setup)
 ```
-watch -n 1 journalctl -u jormungandr.service -n 17
+watch -n 1 journalctl -u jormungandr.service -n 17 -o cat
 ```
 
 ## Works on
