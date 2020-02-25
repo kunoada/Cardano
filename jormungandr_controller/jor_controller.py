@@ -346,6 +346,7 @@ class JorController:
         threading.Timer(15, self.start_thread_leaders_logs).start()
         for node in self.nodes:
             node.update_leaders_logs()
+        self.blocks_left_this_epoch = self.nodes[self.current_leader].leaders.pending
 
     def start_thread_network_stats(self):
         threading.Timer(60, self.start_thread_network_stats).start()
