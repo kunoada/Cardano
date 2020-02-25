@@ -199,7 +199,7 @@ class JorController:
         for l in list_schedule_unix:
             msg = msg + f'Block {counter}: ' + l + '\n'
             counter += 1
-        self.telegram_notifier(msg)
+        self.telegram.send_message(msg)
 
     def on_new_epoch(self):
         self.known_blocks = []
