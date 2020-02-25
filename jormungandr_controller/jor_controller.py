@@ -94,8 +94,7 @@ class JorController:
             self.telegram.send_message(f'Starting node {unique_id}...')
 
     def update_next_block_time(self):
-        next_block_time_tmp = max_time = int(time.time()) + self.nodes[self.current_leader].settings.slot_duration * \
-                                         self.nodes[self.current_leader].settings.slots_per_epoch
+        next_block_time_tmp = max_time = int(time.time()) + self.slot_duration * self.slots_per_epoch
 
         for log in self.nodes[self.current_leader].leaders.leaders_logs:
             if not log:
