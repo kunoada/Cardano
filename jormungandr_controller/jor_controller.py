@@ -119,8 +119,9 @@ class JorController:
         blocks_this_epoch = self.pooltool.pooltool_blocks_minted_this_epoch()
         if blocks_this_epoch > self.blocks_minted_this_epoch:
             self.blocks_minted_this_epoch = blocks_this_epoch
-            self.telegram.send_message(
-                f'Pooltool; New block minted! Total blocks minted this epoch: {self.blocks_minted_this_epoch}')
+            if self.conf.telegrambot_active:
+                self.telegram.send_message(
+                    f'Pooltool; New block minted! Total blocks minted this epoch: {self.blocks_minted_this_epoch}')
 
     def leader_election(self):
         healthiest_node = -1

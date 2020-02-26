@@ -17,7 +17,8 @@ jormungandr_controller/log_*
 *my_config.json
 *tmp*
 
-# old jormungandr_controller
+# old_jormungandr_controller
+old*
 old_jormungandr_controller/venv
 old_jormungandr_controller/log_*
 old_jormungandr_controller/.idea
