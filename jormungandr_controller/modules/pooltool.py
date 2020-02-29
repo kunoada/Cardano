@@ -8,17 +8,25 @@ class Pooltool:
     def __init__(self, pool_id):
         self.url_tip = 'https://api.pooltool.io/v0/sharemytip'
         self.url_minted = f'https://pooltool.s3-us-west-2.amazonaws.com/8e4d2a3/pools/{pool_id}/livestats.json'
+        self.url_stats = 'https://pooltool.s3-us-west-2.amazonaws.com/stats/stats.json'
         self.extra = 'cGxhdGZvcm09am9ybXVuZ2FuZHJfY29udHJvbGxlci5weQ=='
         self.pool_id = pool_id
         self.pooltoolmax = 0
         print('Pooltool initialized')
 
-    def pooltool_blocks_minted_this_epoch(self):
+    def pooltool_livestats(self):
         try:
             r = requests.get(url=self.url_minted)
         except requests.exceptions.RequestException as e:
-            return 0
-        return r.json()['epochblocks']
+            return {}
+        return r.json()
+
+    def pooltool_stats(self):
+        try:
+            r = requests.get(url=self.url_stats)
+        except requests.exceptions.RequestException as e:
+            return {}
+        return r.json()
 
     def pooltool_send_my_tip(self, user_id, genesis_hash, lastBlockHeight, lastBlockHash, block):
         if block == '':

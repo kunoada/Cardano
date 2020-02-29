@@ -20,8 +20,8 @@ class Node:
         self.unique_id = unique_id
 
         self.process_id = subprocess.Popen(
-            [jor_call, '--genesis-block-hash', genesis_hash, '--config', config_path, '--secret', secret_path],
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            [jor_call, '--genesis-block-hash', genesis_hash, '--config', config_path, '--secret', secret_path])#,
+            # stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         # stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT) # Use this to just supress all output from node
         self.leaders = Leaders()
         self.network_stats = NetworkStats()

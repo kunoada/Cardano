@@ -116,12 +116,23 @@ class JorController:
 
     def update_blocks_minted(self):
         # Check if a new block is made
-        blocks_this_epoch = self.pooltool.pooltool_blocks_minted_this_epoch()
-        if blocks_this_epoch > self.blocks_minted_this_epoch:
-            self.blocks_minted_this_epoch = blocks_this_epoch
-            if self.conf.telegrambot_active:
-                self.telegram.send_message(
-                    f'Pooltool; New block minted! Total blocks minted this epoch: {self.blocks_minted_this_epoch}')
+        livestats = self.pooltool.pooltool_livestats()
+        stats = self.pooltool.pooltool_stats()
+        if livestats == {} or stats == {}:
+            return
+
+        current_epoch = stats['currentepoch']
+        blocks_this_epoch = livestats['epochblocks']
+        current_epoch_livestat = livestats['lastBlockEpoch']
+
+        if current_epoch_livestat == current_epoch:
+            if blocks_this_epoch > self.blocks_minted_this_epoch:
+                self.blocks_minted_this_epoch = blocks_this_epoch
+                if self.conf.telegrambot_active:
+                    self.telegram.send_message(
+                        f'Pooltool; New block minted! Total blocks minted this epoch: {self.blocks_minted_this_epoch}')
+        else:
+            self.blocks_minted_this_epoch = 0
 
     def leader_election(self):
         healthiest_node = -1
