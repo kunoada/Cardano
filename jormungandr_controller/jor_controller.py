@@ -73,9 +73,21 @@ class JorController:
         return Node(node_number, self.conf.jcli_call_format, self.conf.jormungandr_call_format, self.conf.genesis_hash,
                     tmp_config_file_path, self.conf.node_secret_path)
 
+    def read_node_output(self, node):
+        while True:
+            line = node.get_node_output()
+            if self.conf.log_to_file:
+                node.write_log_file(line.decode('utf-8'))
+            elif self.conf.stuck_check_active:
+                self.stuck_check(line, node)
+
     def start_nodes(self):
         for i in range(self.conf.number_of_nodes):
             self.nodes.append(self.start_node(i))
+            if self.conf.log_to_file or self.conf.stuck_check_active:
+                thread = threading.Thread(target=self.read_node_output, args=(self.nodes[i],))
+                thread.daemon = True  # Daemonize thread
+                thread.start()
             time.sleep(5)
 
     def restart_node(self, unique_id):
@@ -431,8 +443,8 @@ class JorController:
             self.start_thread_telegram_notifier()
 
         print('Done loading all threads')
-        if self.conf.stuck_check_active or self.conf.log_to_file:
-            self.read_nodes_output()
+        # if self.conf.stuck_check_active or self.conf.log_to_file:
+        #     self.read_nodes_output()
 
 
 def main():

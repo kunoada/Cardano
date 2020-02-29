@@ -20,8 +20,8 @@ class Node:
         self.unique_id = unique_id
 
         self.process_id = subprocess.Popen(
-            [jor_call, '--genesis-block-hash', genesis_hash, '--config', config_path, '--secret', secret_path])#,
-            # stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            [jor_call, '--genesis-block-hash', genesis_hash, '--config', config_path, '--secret', secret_path],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         # stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT) # Use this to just supress all output from node
         self.leaders = Leaders()
         self.network_stats = NetworkStats()
@@ -41,7 +41,10 @@ class Node:
         self.avgLatencyRecords = 10000
         self.is_leader = 1
 
-        self.log_file = open(f'log_{self.unique_id}', 'w')
+        try:
+            self.log_file = open(f'log_{self.unique_id}', 'w')
+        except IOError as e:
+            print(e)
 
     def update_network_stats(self):
         self.network_stats.update_number_of_connections(self.jcli_call, self.ip_address, self.port)
@@ -103,7 +106,12 @@ class Node:
         return output
 
     def write_log_file(self, message):
-        self.log_file.write(message)
+        try:
+            self.log_file.write(message)
+            self.log_file.flush()
+        except:
+            print("Could not write to log file")
+
 
 
 def time_between(d1, d2):
