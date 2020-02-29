@@ -37,16 +37,16 @@ Please use the config.json as a template to fill in your required needs. When th
 
 Linux example using python v3:
 ```python
-python3 jormungandr_controller.py
+python3 jor_controller.py
 ```
 
 Windows example:
 ```python
-py jormungandr_controller.py
+py jor_controller.py
 ```
 or
 ```python
-python jormungandr_controller.py
+python jor_controller.py
 ```
 
 It is **recommended** to run the script as a startup service, so the user can fully relax without any need of manual maintenance.
