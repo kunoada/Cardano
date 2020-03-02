@@ -31,3 +31,6 @@ jormungandr.exe
 jormungandr-v*
 storage*
 test*
+
+# telegram_bot
+telegram*

@@ -240,7 +240,7 @@ class JorController:
         if self.conf.telegrambot_active:
             self.send_block_schedule()
         self.total_blocks_this_epoch = self.blocks_left_this_epoch = self.nodes[self.current_leader].leaders.pending
-        self.blocks_minted_this_epoch = 0
+        # self.blocks_minted_this_epoch = 0
 
     # This method is based on
     # https://github.com/rdlrt/Alternate-Jormungandr-Testnet/blob/master/scripts/jormungandr-leaders-failover.sh

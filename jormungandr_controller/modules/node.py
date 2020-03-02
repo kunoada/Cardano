@@ -44,7 +44,7 @@ class Node:
         try:
             self.log_file = open(f'log_{self.unique_id}', 'w')
         except IOError as e:
-            print(e)
+            print('Could not open file: ' + e)
 
     def update_network_stats(self):
         self.network_stats.update_number_of_connections(self.jcli_call, self.ip_address, self.port)
@@ -98,6 +98,7 @@ class Node:
         return self.process_id.stdout.readline()
 
     def shutdown_node(self):
+        self.log_file.close()
         try:
             output = subprocess.check_output([self.jcli_call, 'rest', 'v0', 'shutdown', 'get', '-h',
                                               f'http://{self.ip_address}:{int(self.port)}/api']).decode('utf-8')
@@ -106,6 +107,8 @@ class Node:
         return output
 
     def write_log_file(self, message):
+        if self.log_file.closed:
+            return
         try:
             self.log_file.write(message)
             self.log_file.flush()
