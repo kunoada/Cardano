@@ -130,10 +130,10 @@ class JorController:
         # Check if a new block is made
         livestats = self.pooltool.pooltool_livestats()
         stats = self.pooltool.pooltool_stats()
-        if livestats == {} or stats == {}:
+        if livestats == {} or stats == {} or self.current_leader < 0:
             return
 
-        current_epoch = stats['currentepoch']
+        current_epoch = int(self.nodes[self.current_leader].node_stats.lastBlockDate.split('.')[0])
         blocks_this_epoch = livestats['epochblocks']
         current_epoch_livestat = livestats['lastBlockEpoch']
 
