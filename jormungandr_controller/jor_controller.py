@@ -212,7 +212,8 @@ class JorController:
     def send_block_schedule(self):
         list_schedule_unix = []
         for log in self.nodes[self.current_leader].leaders.leaders_logs:
-            list_schedule_unix.append(log['scheduled_at_time'])
+            if log['status'] == 'Pending':
+                list_schedule_unix.append(log['scheduled_at_time'])
             #datetime.datetime.strptime(
                 # re.sub(r"([\+-]\d\d):(\d\d)(?::(\d\d(?:.\d+)?))?", r"\1\2\3", log['scheduled_at_time']),
                 # "%Y-%m-%dT%H:%M:%S%z").timestamp()
