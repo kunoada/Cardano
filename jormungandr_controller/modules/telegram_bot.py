@@ -11,7 +11,7 @@ class TelegramBot:
         print('Telegram bot initialized')
 
     def get_updates(self):
-        updates = self.bot.get_updates(offset=self.last_message_update_id + 1)
+        updates = self.bot.get_updates(offset=self.last_message_update_id + 1, timeout=100)
         if not updates:
             return {}
         last_message_received = updates[len(updates) - 1]  # Read only newest message

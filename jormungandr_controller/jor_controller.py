@@ -341,12 +341,20 @@ class JorController:
 
         elif 'stats' in updates['message']['text'].lower():
             for node in self.nodes:
-                self.telegram.send_message(f'Node: {node.unique_id}:\n'
-                                           f'Uptime: {node.node_stats.uptime}\n'
-                                           f'BlockHeight: {node.node_stats.lastBlockHeight}\n'
-                                           f'Delta PT: {node.node_stats.lastBlockHeight - self.pooltool.pooltoolmax}\n'
-                                           f"Slot: {node.node_stats.lastBlockDate.split('.')[1]}\n"
-                                           f'Peers: {node.network_stats.number_of_connections}')
+                if 'Bootstrapping' == node.node_stats.state:
+                    self.telegram.send_message(f'Node: {node.unique_id}:\n'
+                                               f'Uptime: {node.node_stats.uptime}\n'
+                                               f'State: {node.node_stats.state}\n')
+                elif 'Running' == node.node_stats.state:
+                    self.telegram.send_message(f'Node: {node.unique_id}:\n'
+                                               f'Uptime: {node.node_stats.uptime}\n'
+                                               f'BlockHeight: {node.node_stats.lastBlockHeight}\n'
+                                               f'Delta PT: {node.node_stats.lastBlockHeight - self.pooltool.pooltoolmax}\n'
+                                               f"Slot: {node.node_stats.lastBlockDate.split('.')[1]}\n"
+                                               f'Peers: {node.network_stats.number_of_connections}')
+                else:
+                    self.telegram.send_message(f'Node: {node.unique_id}:\n'
+                                               f'State: {node.node_stats.state}\n')
 
     def telegram_notifier(self):
         # Notify if out of sync for more than 1000 sec
@@ -448,10 +456,16 @@ class JorController:
         threading.Timer(self.conf.LEADERS_CHECK_INTERVAL, self.start_thread_leaders_check).start()
         self.leaders_check()
 
+    def telegram_handler(self):
+        while True:
+            self.telegram_updates_handler()
+            self.telegram_notifier()
+            time.sleep(0.5)
+
     def start_thread_telegram_notifier(self):
-        threading.Timer(10, self.start_thread_telegram_notifier).start()
-        self.telegram_updates_handler()
-        self.telegram_notifier()
+        thread = threading.Thread(target=self.telegram_handler)
+        thread.daemon = True  # Daemonize thread
+        thread.start()
 
     def run(self):
         self.start_nodes()
