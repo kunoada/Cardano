@@ -57,6 +57,11 @@ class Config:
 
         self.stuck_check_active = config['StuckCheck']['activate']
 
+        if 'utc_diff' in config:
+            self.utc_diff = config['utc_diff']
+        else:
+            self.utc_diff = 0
+
         self.validate_configurations()
 
         print('Loaded configurations')

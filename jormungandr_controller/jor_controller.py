@@ -209,17 +209,43 @@ class JorController:
                 if start_timer + 20 < time.time():
                     break
 
+    def utc_offset(self, time, offset):
+        def pad(number):
+            n = str(abs(number))
+
+            while len(n) < 2:
+                n = "0" + n
+
+            if number >= 0:
+                n = "+" + n
+            else:
+                n = "-" + n
+            return n
+
+        utc_diff_format = f"{pad(offset)}:00"
+
+        time = list(time)
+        i = time.index("+")
+        time[i:] = list(utc_diff_format)
+        time = ''.join(time)
+
+        return time
+
     def send_block_schedule(self):
         list_schedule_unix = []
         for log in self.nodes[self.current_leader].leaders.leaders_logs:
             if log['status'] == 'Pending':
-                list_schedule_unix.append(log['scheduled_at_time'])
-            #datetime.datetime.strptime(
-                # re.sub(r"([\+-]\d\d):(\d\d)(?::(\d\d(?:.\d+)?))?", r"\1\2\3", log['scheduled_at_time']),
-                # "%Y-%m-%dT%H:%M:%S%z").timestamp()
+                obj = datetime.datetime.strptime(
+                    re.sub(r"([\+-]\d\d):(\d\d)(?::(\d\d(?:.\d+)?))?", r"\1\2\3",
+                           self.utc_offset(log['scheduled_at_time'], self.conf.utc_diff)),
+                    "%Y-%m-%dT%H:%M:%S%z")
+                obj = obj - datetime.timedelta(hours=-self.conf.utc_diff)
+                list_schedule_unix.append(
+                    str(obj)
+                )
         list_schedule_unix.sort()
         msg = ''
-        counter = 0
+        counter = 1
         for l in list_schedule_unix:
             msg = msg + f'Block {counter}: ' + l + '\n'
             counter += 1
@@ -455,4 +481,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

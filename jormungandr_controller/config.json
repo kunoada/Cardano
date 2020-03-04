@@ -31,5 +31,6 @@
 		"SEND_MY_TIP": 15,				#how often to send my tip (minimum 15)
 		"TRANSITION_CHECK": 2,			#how often to check for epoch transition
 		"LEADERS_CHECK": 15				#how often to check that only one node is leader
-	}
+	},
+	"utc_diff": 0
 }
