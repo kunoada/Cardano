@@ -33,4 +33,4 @@ storage*
 test*
 
 # telegram_bot
-telegram/token
+telegram_bot/token
