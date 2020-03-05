@@ -34,3 +34,4 @@ test*
 
 # telegram_bot
 telegram_bot/token
+*.sqlite
