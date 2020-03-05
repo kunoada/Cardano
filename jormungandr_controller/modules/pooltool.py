@@ -1,5 +1,6 @@
 import urllib
 import base64
+import subprocess
 
 import requests
 
@@ -45,3 +46,7 @@ class Pooltool:
         data = r.json()
         if data['success'] and data['confidence']:
             self.pooltoolmax = int(data['pooltoolmax'])
+
+    def pooltool_send_slots(self, rest_port, user_id, genesis):  # TODO: implement own function instead of using script
+        subprocess.run(['./send_slots.sh', f'{rest_port}', f'{self.pool_id}', f'{user_id}', f'{genesis}'],
+                       stderr=subprocess.STDOUT)

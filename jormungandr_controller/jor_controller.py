@@ -254,7 +254,6 @@ class JorController:
     def on_new_epoch(self):
         self.known_blocks = []
         self.is_new_epoch = True
-        self.is_in_transition = False
 
         # Wait some time to make sure that leaders logs are a complete list and force update
         time.sleep(60)
@@ -267,6 +266,9 @@ class JorController:
         if self.conf.telegrambot_active:
             self.send_block_schedule()
         self.total_blocks_this_epoch = self.blocks_left_this_epoch = self.nodes[self.current_leader].leaders.pending
+        if self.conf.pooltool_active:
+            self.pooltool.pooltool_send_slots(self.nodes[self.current_leader].port, self.conf.user_id, self.conf.genesis_hash)
+        self.is_in_transition = False
         # self.blocks_minted_this_epoch = 0
 
     # This method is based on
