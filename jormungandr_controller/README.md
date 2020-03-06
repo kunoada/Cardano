@@ -122,6 +122,46 @@ To get a nice way of watching the output (adjust 17 to the number of lines that 
 watch -n 1 journalctl -u jormungandr.service -n 17 -o cat
 ```
 
+## Config file explained
+```json
+{
+	"Configuration": {
+		"jcli_call_format": "./jcli",
+		"jormungandr_call_format": "./jormungandr",
+		"stakepool_config_path": "stakepool-config.yaml",
+		"node_secret_path": "node-secret.yaml",
+		"genesis_hash": "8e4d2a343f3dcf9330ad9035b3e8d168e6728904262f2c434a4f8f934ec7b676",
+		"pool_id": "",
+		"number_of_nodes": 3,
+		"use_seperate_storage": false,	#use a storage for each node
+		"log_to_file": false		#log output from each node to a file
+	},
+	"PooltoolSetup": {
+		"user_id": "",
+		"send_tip": false,
+		"send_slots": true		#Works only on linux (jq package is required! - sudo apt install jq)
+	},
+	"TelegramBot": {
+		"activate": false,
+		"token": "",
+		"chat_id": ""
+	},
+	"StuckCheck": {
+		"activate": false
+	},
+	"Intervals": {
+		"LEADER_ELECTION": 3,		#how often to check who should be leader
+		"PRINT_UPDATE": 1,		#how often to print
+		"UPDATE_NODES": 1,		#how often to update node stats
+		"BOOTSTRAP_STUCK_CHECK": 500,	#how often to check for bootstrap stuck check
+		"LAST_SYNC_RESTART": 1000,	#when to restart on bootstrap stuck
+		"SEND_MY_TIP": 15,		#how often to send my tip (minimum 15)
+		"TRANSITION_CHECK": 2,		#how often to check for epoch transition
+		"LEADERS_CHECK": 15		#how often to check that only one node is leader
+	},
+	"utc_diff": 0                           #This will change the time when the block schedule is sent via telegram bot
+}
+```
 ## Works on
 Tested on both Windows and Linux. If anyone has tried this script on MAC, please let me know! :-)
 # OBS 
