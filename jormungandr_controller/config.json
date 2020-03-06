@@ -7,13 +7,13 @@
 		"genesis_hash": "8e4d2a343f3dcf9330ad9035b3e8d168e6728904262f2c434a4f8f934ec7b676",
 		"pool_id": "",
 		"number_of_nodes": 3,
-		"use_seperate_storage": false,	#use a storage for each node
-		"log_to_file": false			#log output from each node to a file
+		"use_seperate_storage": false,
+		"log_to_file": false
 	},
 	"PooltoolSetup": {
 		"user_id": "",
 		"send_tip": false,
-		"send_slots": false				#Works only on linux (jq package is required! - sudo apt install jq)
+		"send_slots": false
 	},
 	"TelegramBot": {
 		"activate": false,
@@ -24,14 +24,14 @@
 		"activate": false
 	},
 	"Intervals": {
-		"LEADER_ELECTION": 3,			#how often to check who should be leader
-		"PRINT_UPDATE": 1,				#how often to print
-		"UPDATE_NODES": 1,				#how often to update node stats
-		"BOOTSTRAP_STUCK_CHECK": 500,	#how often to check for bootstrap stuck check
-		"LAST_SYNC_RESTART": 1000,		#when to restart on bootstrap stuck
-		"SEND_MY_TIP": 15,				#how often to send my tip (minimum 15)
-		"TRANSITION_CHECK": 2,			#how often to check for epoch transition
-		"LEADERS_CHECK": 15				#how often to check that only one node is leader
+		"LEADER_ELECTION": 3,
+		"PRINT_UPDATE": 1,
+		"UPDATE_NODES": 1,
+		"BOOTSTRAP_STUCK_CHECK": 500,
+		"LAST_SYNC_RESTART": 1000,
+		"SEND_MY_TIP": 15,
+		"TRANSITION_CHECK": 2,
+		"LEADERS_CHECK": 15
 	},
 	"utc_diff": 0
 }
