@@ -45,8 +45,9 @@ class Config:
         self.LEADERS_CHECK_INTERVAL = config['Intervals']['LEADERS_CHECK']
 
         # Pooltool setup
-        self.pooltool_active = config['PooltoolSetup']['activate']
-        if self.pooltool_active:
+        self.send_tip = config['PooltoolSetup']['send_tip']
+        self.send_slots = config['PooltoolSetup']['send_slots']
+        if self.send_tip or self.send_slots:
             self.user_id = config['PooltoolSetup']['user_id']
 
         # Telegram Bot setup

@@ -11,8 +11,9 @@
 		"log_to_file": false			#log output from each node to a file
 	},
 	"PooltoolSetup": {
-		"activate": false,
-		"user_id": ""
+		"user_id": "",
+		"send_tip": false,
+		"send_slots": false				#Works only on linux (jq package is required! - sudo apt install jq)
 	},
 	"TelegramBot": {
 		"activate": false,

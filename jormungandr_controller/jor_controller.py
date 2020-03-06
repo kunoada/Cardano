@@ -78,15 +78,17 @@ class JorController:
             line = node.get_node_output()
             if self.conf.log_to_file:
                 node.write_log_file(line.decode('utf-8'))
-            elif self.conf.stuck_check_active:
+            if self.conf.stuck_check_active:
                 self.stuck_check(line, node)
+            if not node.log_thread_running:
+                break
 
     def start_nodes(self):
         for i in range(self.conf.number_of_nodes):
             self.nodes.append(self.start_node(i))
             if self.conf.log_to_file or self.conf.stuck_check_active:
                 thread = threading.Thread(target=self.read_node_output, args=(self.nodes[i],))
-                thread.daemon = True  # Daemonize thread
+                self.nodes[i].log_thread_running = True
                 thread.start()
             time.sleep(5)
 
@@ -100,6 +102,10 @@ class JorController:
         # Sometimes shutdown does not kill the node completely, so insure this by killing process
         self.nodes[unique_id].process_id.kill()
         self.nodes[unique_id] = self.start_node(unique_id)
+        if self.conf.log_to_file or self.conf.stuck_check_active:
+            thread = threading.Thread(target=self.read_node_output, args=(self.nodes[unique_id],))
+            self.nodes[unique_id].log_thread_running = True
+            thread.start()
         # TODO: Does this node needs some data to be initialized after reboot?
 
         if self.conf.telegrambot_active:
@@ -266,7 +272,7 @@ class JorController:
         if self.conf.telegrambot_active:
             self.send_block_schedule()
         self.total_blocks_this_epoch = self.blocks_left_this_epoch = self.nodes[self.current_leader].leaders.pending
-        if self.conf.pooltool_active:
+        if self.conf.send_slots:
             self.pooltool.pooltool_send_slots(self.nodes[self.current_leader].port, self.conf.user_id, self.conf.genesis_hash)
         self.is_in_transition = False
         # self.blocks_minted_this_epoch = 0
@@ -480,7 +486,7 @@ class JorController:
         self.start_thread_bootstrap_stuck_check()
         self.start_thread_check_transition()
         self.start_thread_leaders_check()
-        if self.conf.pooltool_active:
+        if self.conf.send_tip:
             self.start_thread_send_my_tip()
         if self.conf.telegrambot_active:
             self.start_thread_telegram_notifier()

@@ -41,6 +41,8 @@ class Node:
         self.avgLatencyRecords = 10000
         self.is_leader = 1
 
+        self.log_thread_running = False
+
         try:
             self.log_file = open(f'log_{self.unique_id}', 'w')
         except IOError as e:
@@ -99,6 +101,7 @@ class Node:
 
     def shutdown_node(self):
         self.log_file.close()
+        self.log_thread_running = False
         try:
             output = subprocess.check_output([self.jcli_call, 'rest', 'v0', 'shutdown', 'get', '-h',
                                               f'http://{self.ip_address}:{int(self.port)}/api']).decode('utf-8')
@@ -114,7 +117,6 @@ class Node:
             self.log_file.flush()
         except:
             print("Could not write to log file")
-
 
 
 def time_between(d1, d2):
