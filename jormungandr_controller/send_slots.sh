@@ -12,7 +12,11 @@ MY_POOL_ID=$2
 MY_USER_ID=$3
 
 THIS_GENESIS=$4
+<<<<<<< HEAD
 KEY_LOCATION="/secret"
+=======
+KEY_LOCATION="secret"
+>>>>>>> 3527d897f37bcaa24034f4da82f7afabe680ce7a
 
 #Testing if variables are set
 if  [ -z "$MY_POOL_ID"] || [ -z "$MY_USER_ID" ] || [ -z "$THIS_GENESIS" ] || [ -z "$KEY_LOCATION" ]

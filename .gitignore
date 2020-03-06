@@ -14,6 +14,7 @@ jormungandr_controller/venv
 jormungandr_controller/log_*
 jormungandr_controller/.idea
 jormungandr_controller/log_*
+jormungandr_controller/secret/passphrase_*
 *my_config.json
 *tmp*
 
@@ -35,3 +36,4 @@ test*
 # telegram_bot
 telegram_bot/token
 *.sqlite
+*.out
