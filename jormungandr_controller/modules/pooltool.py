@@ -48,7 +48,7 @@ class Pooltool:
         if data['success'] and data['confidence']:
             self.pooltoolmax = int(data['pooltoolmax'])
 
-    def pooltool_send_slots(self, rest_port, user_id, genesis, current_epoch):  # TODO: implement own function instead of using script
+    def pooltool_send_slots(self, rest_port, user_id, genesis):  # TODO: implement own function instead of using script
         # if os.path.isfile(f'secret/passphrase_{current_epoch - 1}'):
         #     with open(f'secret/passphrase_{current_epoch - 1}', 'r') as last_passphrase:
         #         previous_key = last_passphrase.read()
