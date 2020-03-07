@@ -15,7 +15,7 @@ THIS_GENESIS=$4
 KEY_LOCATION="secret"
 
 #Testing if variables are set
-if  [ -z "$MY_POOL_ID"] || [ -z "$MY_USER_ID" ] || [ -z "$THIS_GENESIS" ] || [ -z "$KEY_LOCATION" ]
+if  [ -z "$MY_POOL_ID" ] || [ -z "$MY_USER_ID" ] || [ -z "$THIS_GENESIS" ] || [ -z "$KEY_LOCATION" ]
 then
 	echo "One or more variables not set."
 	echo "MY_POOL_ID = $MY_POOL_ID"
