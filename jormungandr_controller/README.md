@@ -11,6 +11,7 @@ The jormungandr controller is automating all the dirty work a stakepool operator
 - Activate/deactive a stuck check notifier
 - Single or multi storages is configurable
 - Sendmytip to pooltool from the healthiest node (leader node)
+- Send_slots to pooltool (This mode is Only for linux at the moment)
 - Failover script, all nodes are elected as leaders for an epoch transition
 - Leader check, which makes sure that only one node is leader
 - Telegram bot 
