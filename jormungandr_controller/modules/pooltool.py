@@ -40,8 +40,11 @@ class Pooltool:
 
         platform = urllib.parse.urlencode({"platform": "jormungandr_controller.py"})
 
-        # sending get request and saving the response as response object
-        r = requests.get(url=self.url_tip + '?' + base64.b64decode(self.extra).decode("utf-8"), params=PARAMS)
+        try:
+            # sending get request and saving the response as response object
+            r = requests.get(url=self.url_tip + '?' + base64.b64decode(self.extra).decode("utf-8"), params=PARAMS)
+        except requests.exceptions.RequestException as e:
+            return
 
         # extracting data in json format
         data = r.json()

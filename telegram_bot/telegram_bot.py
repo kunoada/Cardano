@@ -13,13 +13,18 @@ URL = "https://api.telegram.org/bot{}/".format(TOKEN)
 
 
 def get_url(url):
-    response = requests.get(url)
+    try:
+        response = requests.get(url)
+    except requests.exceptions.RequestException as e:
+        return ''
     content = response.content.decode("utf8")
     return content
 
 
 def get_json_from_url(url):
     content = get_url(url)
+    if content == '':
+        return
     js = json.loads(content)
     return js
 
@@ -68,6 +73,10 @@ def handle_updates(updates):
                 message = "This is not a valid TICKER!"
                 send_message(message, chat)
                 continue
+            elif pool_id == 'error':
+                message = "There was an error, please try again"
+                send_message(message, chat)
+                continue
             db.add_item(chat, text)
             data = update_livestats(pool_id)
             db.update_items(chat, text, pool_id, data[0], data[1])
@@ -100,7 +109,10 @@ def send_message(text, chat_id, reply_markup=None):
 
 def get_pool_id_from_ticker(ticker):
     url_pool_ids = 'https://pooltool.s3-us-west-2.amazonaws.com/8e4d2a3/tickers.json'
-    r = requests.get(url_pool_ids)
+    try:
+        r = requests.get(url_pool_ids)
+    except requests.exceptions.RequestException as e:
+        return 'error'
     data = r.json()
     for pool_id in data['tickers']:
         if data['tickers'][pool_id] == ticker:
@@ -110,25 +122,36 @@ def get_pool_id_from_ticker(ticker):
 
 def get_livestats(pool_id):
     url_livestats = f'https://pooltool.s3-us-west-2.amazonaws.com/8e4d2a3/pools/{pool_id}/livestats.json'
-    r = requests.get(url_livestats)
+    try:
+        r = requests.get(url_livestats)
+    except requests.exceptions.RequestException as e:
+        return ''
     data = r.json()
     return data
 
 
 def update_livestats(pool_id):
     data = get_livestats(pool_id)
+    if data == '':
+        return (0, 0, 0)
     return (round(int(data['livestake'])/1000000), data['epochblocks'], data['lastBlockEpoch'])
 
 
 def get_stats():
     url_stats = 'https://pooltool.s3-us-west-2.amazonaws.com/stats/stats.json'
-    r = requests.get(url_stats)
+    try:
+        r = requests.get(url_stats)
+    except requests.exceptions.RequestException as e:
+        return ''
     data = r.json()
     return data
 
 
 def get_current_epoch():
-    return get_stats()['currentepoch']
+    data = get_stats()
+    if data == '':
+        return
+    return data['currentepoch']
 
 
 def check_delegation_changes(chat_id, ticker, delegations, new_delegations):
