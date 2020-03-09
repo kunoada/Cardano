@@ -59,17 +59,17 @@ class Node:
 
         if self.current_blockHeight < self.node_stats.lastBlockHeight:
             self.current_blockHeight = self.node_stats.lastBlockHeight
+            self.latency = int(time.time()) - self.timeSinceLastBlock
             self.timeSinceLastBlock = int(time.time())
-
-            if self.node_stats.lastReceivedBlockTime is not None and self.node_stats.lastReceivedBlockTime != '':
-                self.latency = time_between(
-                    re.sub(r"([\+-]\d\d):(\d\d)(?::(\d\d(?:.\d+)?))?", r"\1\2\3", self.node_stats.lastBlockTime),
-                    re.sub(r"([\+-]\d\d):(\d\d)(?::(\d\d(?:.\d+)?))?", r"\1\2\3",
-                           self.node_stats.lastReceivedBlockTime))
-                self.last5LatencyRecords.append(self.latency)
-
-                if len(list(self.last5LatencyRecords)):
-                    self.avgLatencyRecords = sum(list(self.last5LatencyRecords)) / len(list(self.last5LatencyRecords))
+            self.last5LatencyRecords.append(self.latency)
+            # if self.node_stats.lastReceivedBlockTime is not None and self.node_stats.lastReceivedBlockTime != '':
+            #     self.latency = time_between(
+            #         re.sub(r"([\+-]\d\d):(\d\d)(?::(\d\d(?:.\d+)?))?", r"\1\2\3", self.node_stats.lastBlockTime),
+            #         re.sub(r"([\+-]\d\d):(\d\d)(?::(\d\d(?:.\d+)?))?", r"\1\2\3",
+            #                self.node_stats.lastReceivedBlockTime))
+            #     self.last5LatencyRecords.append(self.latency)
+            if len(list(self.last5LatencyRecords)):
+                self.avgLatencyRecords = sum(list(self.last5LatencyRecords)) / len(list(self.last5LatencyRecords))
 
     def update_settings(self):
         self.settings.update_settings(self.jcli_call, self.ip_address, self.port)
