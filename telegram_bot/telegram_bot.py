@@ -4,6 +4,7 @@ import time
 import urllib
 import threading
 
+from si_prefix import si_format
 from dbhelper import DBHelper
 
 db = DBHelper()
@@ -170,10 +171,10 @@ def check_delegation_changes(chat_id, ticker, delegations, new_delegations):
     if delegations != new_delegations:
         db.update_delegation(chat_id, ticker, new_delegations)
         if delegations > new_delegations:
-            message = f'{ticker}\n Your delegations has decreased to: {new_delegations} ADA'
+            message = f'{ticker}\n Your delegations has decreased to: {si_format(new_delegations, precision=2)} ADA'
             send_message(message, chat_id)
         elif delegations < new_delegations:
-            message = f'{ticker}\n Your delegations has increased to: {new_delegations} ADA'
+            message = f'{ticker}\n Your delegations has increased to: {si_format(new_delegations, precision=2)} ADA'
             send_message(message, chat_id)
 
 
@@ -201,7 +202,7 @@ def handle_notifier():
                 message = f'{ticker}\n ' \
                           f'Epoch {current_epoch} stats:\n' \
                           f'\n' \
-                          f'Live stake {delegations}' \
+                          f'Live stake {si_format(delegations, precision=2)}' \
                           f'Blocks minted: {blocks_minted}\n'
                 send_message(message , chat_id)
         current_epoch = epoch
