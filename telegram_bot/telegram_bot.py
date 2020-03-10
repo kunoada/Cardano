@@ -4,12 +4,14 @@ import time
 import urllib
 import threading
 
-from dbhelper2 import DBHelper
+from dbhelper import DBHelper
 
 db = DBHelper()
 
 TOKEN = open('token', 'r').read()
 URL = "https://api.telegram.org/bot{}/".format(TOKEN)
+
+current_epoch = 0
 
 
 def get_url(url):
@@ -68,7 +70,9 @@ def handle_updates(updates):
             message = "List of pools you watch:\n\n" + "\n".join(tickers)
             send_message(message, chat)
         else:
-            pool_id = get_pool_id_from_ticker(text)
+            pool_id = get_pool_id_from_ticker_file(text)
+            if pool_id == '':
+                pool_id = get_pool_id_from_ticker_url(text)
             if pool_id == '':
                 message = "This is not a valid TICKER!"
                 send_message(message, chat)
@@ -107,7 +111,15 @@ def send_message(text, chat_id, reply_markup=None):
     get_url(url)
 
 
-def get_pool_id_from_ticker(ticker):
+def get_pool_id_from_ticker_file(ticker):
+    with open('tickers.json', 'r') as ticker_file:
+        tickers = json.load(ticker_file)
+    for pool_id in tickers['tickers']:
+        if tickers['tickers'][pool_id] == ticker:
+            return pool_id
+    return ''
+
+def get_pool_id_from_ticker_url(ticker):
     url_pool_ids = 'https://pooltool.s3-us-west-2.amazonaws.com/8e4d2a3/tickers.json'
     try:
         r = requests.get(url_pool_ids)
@@ -166,8 +178,6 @@ def check_delegation_changes(chat_id, ticker, delegations, new_delegations):
 
 
 def check_blocks_minted(chat_id, ticker, blocks_minted, new_blocks_minted, new_last_block_epoch):
-    current_epoch = get_current_epoch()
-
     if new_last_block_epoch == current_epoch:
         if new_blocks_minted > blocks_minted:
             db.update_blocks_minted(chat_id, ticker, new_blocks_minted)
@@ -178,12 +188,31 @@ def check_blocks_minted(chat_id, ticker, blocks_minted, new_blocks_minted, new_l
 
 
 def handle_notifier():
+    global current_epoch
     chat_ids = list(set(db.get_chat_ids()))
+
+    epoch = get_current_epoch()
+    if current_epoch < epoch:
+        # TODO: End of epoch notify
+        for chat_id in chat_ids:
+            tickers = db.get_tickers(chat_id)
+            for ticker in tickers:
+                pool_id , delegations , blocks_minted = db.get_items(chat_id , ticker)
+                message = f'{ticker}\n ' \
+                          f'Epoch {current_epoch} stats:\n' \
+                          f'\n' \
+                          f'Live stake {delegations}' \
+                          f'Blocks minted: {blocks_minted}\n'
+                send_message(message , chat_id)
+        current_epoch = epoch
+
     for chat_id in chat_ids:
         tickers = db.get_tickers(chat_id)
         for ticker in tickers:
             pool_id, delegations, blocks_minted = db.get_items(chat_id, ticker)
             new_delegations, new_blocks_minted, new_last_block_epoch = update_livestats(pool_id)
+            if new_last_block_epoch == 0:
+                continue
             check_delegation_changes(chat_id, ticker, delegations, new_delegations)
             check_blocks_minted(chat_id, ticker, blocks_minted, new_blocks_minted, new_last_block_epoch)
 
@@ -192,13 +221,18 @@ def start_telegram_update_handler():
     last_update_id = None
     while True:
         updates = get_updates(last_update_id)
-        if len(updates["result"]) > 0:
-            last_update_id = get_last_update_id(updates) + 1
-            handle_updates(updates)
+        if updates is not None:
+            if len(updates["result"]) > 0:
+                last_update_id = get_last_update_id(updates) + 1
+                handle_updates(updates)
         time.sleep(0.5)
 
 
 def start_telegram_notifier():
+    ## On start init..
+    global current_epoch
+    current_epoch = get_current_epoch()
+    ##
     while True:
         handle_notifier()
         time.sleep(1*60)
