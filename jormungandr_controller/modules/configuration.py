@@ -1,6 +1,7 @@
 import json
 import sys
 import os.path
+import os
 
 
 def validate_file_exist(path):
@@ -49,6 +50,10 @@ class Config:
         self.send_slots = config['PooltoolSetup']['send_slots']
         if self.send_tip or self.send_slots:
             self.user_id = config['PooltoolSetup']['user_id']
+            if self.send_slots:
+                if not os.access('./send_slots.sh', os.X_OK):
+                    print('send_slots.sh is not executable')
+                    sys.exit(1)
 
         # Telegram Bot setup
         self.telegrambot_active = config['TelegramBot']['activate']
