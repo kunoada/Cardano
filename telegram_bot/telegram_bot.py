@@ -36,6 +36,7 @@ def get_updates(offset=None):
     url = URL + "getUpdates"
     if offset:
         url += "?offset={}".format(offset)
+    url += "?timeout={}".format(100)
     js = get_json_from_url(url)
     return js
 
