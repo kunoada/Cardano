@@ -121,6 +121,7 @@ def get_pool_id_from_ticker_file(ticker):
             return pool_id
     return ''
 
+
 def get_pool_id_from_ticker_url(ticker):
     url_pool_ids = 'https://pooltool.s3-us-west-2.amazonaws.com/8e4d2a3/tickers.json'
     try:
@@ -168,6 +169,23 @@ def get_current_epoch():
     return data['currentepoch']
 
 
+def get_competitive(pool_id, epoch):
+    url_competitive = f'https://pooltool.s3-us-west-2.amazonaws.com/8e4d2a3/pools/{pool_id}/byepoch/{epoch}/winloss.json'
+    try:
+        r = requests.get(url_competitive)
+    except requests.exceptions.RequestException as e:
+        return ''
+    data = r.json()
+    return data
+
+
+def update_competitive_win_loss(pool_id, epoch):
+    data = get_competitive(pool_id, epoch)
+    if data == '':
+        return (0, 0)
+    return (data['w'], data['l'])
+
+
 def check_delegation_changes(chat_id, ticker, delegations, new_delegations):
     if delegations != new_delegations:
         db.update_delegation(chat_id, ticker, new_delegations)
@@ -200,11 +218,13 @@ def handle_notifier():
             tickers = db.get_tickers(chat_id)
             for ticker in tickers:
                 pool_id , delegations , blocks_minted = db.get_items(chat_id , ticker)
+                wins, losses = update_competitive_win_loss(pool_id, current_epoch)
                 message = f'{ticker}\n ' \
                           f'Epoch {current_epoch} stats:\n' \
                           f'\n' \
                           f'Live stake {si_format(delegations, precision=2)}' \
-                          f'Blocks minted: {blocks_minted}\n'
+                          f'Blocks minted: {blocks_minted}\n' \
+                          f'Battles: {wins}/{wins + losses}'
                 send_message(message , chat_id)
         current_epoch = epoch
 

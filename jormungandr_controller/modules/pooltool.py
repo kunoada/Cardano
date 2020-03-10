@@ -62,6 +62,5 @@ class Pooltool:
         #         previous_key = current_passphrase.read()
         # else:
         #     previous_key = ''
-
         subprocess.run(['./send_slots.sh', f'{rest_port}', f'{self.pool_id}', f'{user_id}', f'{genesis}'],
                        stderr=subprocess.STDOUT)
