@@ -213,7 +213,6 @@ def handle_notifier():
 
     epoch = get_current_epoch()
     if current_epoch < epoch:
-        # TODO: End of epoch notify
         for chat_id in chat_ids:
             tickers = db.get_tickers(chat_id)
             for ticker in tickers:
@@ -222,7 +221,7 @@ def handle_notifier():
                 message = f'{ticker}\n ' \
                           f'Epoch {current_epoch} stats:\n' \
                           f'\n' \
-                          f'Live stake {si_format(delegations, precision=2)}' \
+                          f'Live stake {si_format(delegations, precision=2)}\n' \
                           f'Blocks minted: {blocks_minted}\n' \
                           f'Battles: {wins}/{wins + losses}'
                 send_message(message , chat_id)
