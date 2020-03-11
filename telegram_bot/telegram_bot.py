@@ -195,10 +195,12 @@ def check_delegation_changes(chat_id, ticker, delegations, new_delegations):
     if delegations != new_delegations:
         db.update_delegation(chat_id, ticker, new_delegations)
         if delegations > new_delegations:
-            message = f'{ticker}\n Your delegations has decreased to: {si_format(new_delegations, precision=2)} ADA'
+            message = f'{ticker}\n' \
+                      f'- {si_format(delegations - new_delegations, precision=2)} ADA! Your delegations has decreased to: {si_format(new_delegations, precision=2)} ADA'
             send_message(message, chat_id)
         elif delegations < new_delegations:
-            message = f'{ticker}\n Your delegations has increased to: {si_format(new_delegations, precision=2)} ADA'
+            message = f'{ticker}\n' \
+                      f'+ {si_format(new_delegations - delegations, precision=2)} ADA! Your delegations has increased to: {si_format(new_delegations, precision=2)} ADA'
             send_message(message, chat_id)
 
 
