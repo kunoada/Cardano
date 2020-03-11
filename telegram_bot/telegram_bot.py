@@ -174,6 +174,23 @@ def get_current_epoch():
     return data['currentepoch']
 
 
+def get_rewards_data(pool_id, epoch):
+    url_rewards = f'https://pooltool.s3-us-west-2.amazonaws.com/8e4d2a3/pools/{pool_id}/rewards_{epoch}.json'
+    try:
+        r = requests.get(url_rewards)
+    except requests.exceptions.RequestException as e:
+        return ''
+    data = r.json()
+    return data
+
+
+def update_rewards(pool_id, epoch):
+    data = get_rewards_data(pool_id, epoch)
+    if data == '':
+        return (0, 0)
+    return (data['rewards']['value_for_stakers'], data['rewards']['value_taxed'])
+
+
 def get_competitive(pool_id, epoch):
     url_competitive = f'https://pooltool.s3-us-west-2.amazonaws.com/8e4d2a3/pools/{pool_id}/byepoch/{epoch}/winloss.json'
     try:
@@ -225,12 +242,16 @@ def handle_notifier():
             for ticker in tickers:
                 pool_id , delegations , blocks_minted = db.get_items(chat_id , ticker)
                 wins, losses = update_competitive_win_loss(pool_id, current_epoch)
+                rewards_stakers, rewards_tax = update_rewards(pool_id, current_epoch)
                 message = f'{ticker}\n ' \
                           f'🔥Epoch {current_epoch} stats:🔥\n' \
                           f'\n' \
                           f'💰Live stake {si_format(delegations, precision=2)}\n' \
                           f'⛏Blocks minted: {blocks_minted}\n' \
-                          f'⚔Slot battles: {wins}/{wins + losses}'
+                          f'⚔Slot battles: {wins}/{wins + losses}\n' \
+                          f'\n' \
+                          f'Stakers rewards {si_format(rewards_stakers/1000000, precision=2)}\n' \
+                          f'Tax rewards {si_format(rewards_tax / 1000000, precision=2)}'
                 send_message(message , chat_id)
         current_epoch = epoch
 
