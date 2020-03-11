@@ -14,6 +14,11 @@ URL = "https://api.telegram.org/bot{}/".format(TOKEN)
 
 current_epoch = 0
 
+lightning = '⚡'
+fire = '🔥'
+moneyBag = '💰'
+pickaxe = '⛏'
+swords = '⚔'
 
 def get_url(url):
     try:
@@ -219,11 +224,11 @@ def handle_notifier():
                 pool_id , delegations , blocks_minted = db.get_items(chat_id , ticker)
                 wins, losses = update_competitive_win_loss(pool_id, current_epoch)
                 message = f'{ticker}\n ' \
-                          f'Epoch {current_epoch} stats:\n' \
+                          f'🔥Epoch {current_epoch} stats:🔥\n' \
                           f'\n' \
-                          f'Live stake {si_format(delegations, precision=2)}\n' \
-                          f'Blocks minted: {blocks_minted}\n' \
-                          f'Battles: {wins}/{wins + losses}'
+                          f'💰Live stake {si_format(delegations, precision=2)}\n' \
+                          f'⛏Blocks minted: {blocks_minted}\n' \
+                          f'⚔Battles: {wins}/{wins + losses}'
                 send_message(message , chat_id)
         current_epoch = epoch
 
