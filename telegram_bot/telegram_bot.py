@@ -230,7 +230,7 @@ def handle_notifier():
                           f'\n' \
                           f'💰Live stake {si_format(delegations, precision=2)}\n' \
                           f'⛏Blocks minted: {blocks_minted}\n' \
-                          f'⚔Battles: {wins}/{wins + losses}'
+                          f'⚔Slot battles: {wins}/{wins + losses}'
                 send_message(message , chat_id)
         current_epoch = epoch
 
