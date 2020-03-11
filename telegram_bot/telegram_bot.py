@@ -170,7 +170,7 @@ def get_stats():
 def get_current_epoch():
     data = get_stats()
     if data == '':
-        return
+        return 0
     return data['currentepoch']
 
 
