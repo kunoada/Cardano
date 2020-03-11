@@ -185,9 +185,12 @@ class JorController:
 
     def bootstrap_stuck_check(self):
         for node in self.nodes:
+            if int(time.time()) - node.timeSinceLastBlock > 30 and node.node_stats.state == 'Starting':
+                print(f'Node {node.unique_id} is restarting due to stuck in starting')
+                self.restart_node(node.unique_id)
             if int(time.time()) - node.timeSinceLastBlock > self.conf.LAST_SYNC_RESTART and \
-                    (node.node_stats.state == 'Bootstrapping' or node.node_stats.state == 'Starting'):
-                print(f'Node {node.unique_id} is restarting due to stuck in bootstrapping or had a bad start')
+                    (node.node_stats.state == 'Bootstrapping'):
+                print(f'Node {node.unique_id} is restarting due to stuck in bootstrapping')
                 self.restart_node(node.unique_id)
 
     def send_my_tip(self):
