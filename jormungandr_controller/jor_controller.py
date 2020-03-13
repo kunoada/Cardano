@@ -242,6 +242,8 @@ class JorController:
 
     def send_block_schedule(self):
         list_schedule_unix = []
+        if not self.nodes[self.current_leader].leaders.leaders_logs:
+            return
         for log in self.nodes[self.current_leader].leaders.leaders_logs:
             if log['status'] == 'Pending':
                 obj = datetime.datetime.strptime(
