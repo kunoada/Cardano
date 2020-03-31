@@ -262,6 +262,13 @@ class JorController:
             counter += 1
         self.telegram.send_message(msg)
 
+    def sort_leaders_log_to_current_epoch_only(self, log, current_epoch):
+        sorted_log = []
+        for log in log:
+            if int(log['scheduled_at_date'][:2]) == current_epoch:
+                sorted_log.append(log)
+        return sorted_log
+
     def on_new_epoch(self):
         self.known_blocks = []
         self.is_new_epoch = True
@@ -278,9 +285,11 @@ class JorController:
             self.send_block_schedule()
         self.total_blocks_this_epoch = self.blocks_left_this_epoch = self.nodes[self.current_leader].leaders.pending
         if self.conf.send_slots:
-            self.pooltool.pooltool_send_slots(self.nodes[self.current_leader].port, self.conf.user_id, self.conf.genesis_hash)
+            self.pooltool.pooltool_send_slots(
+                self.sort_leaders_log_to_current_epoch_only(self.nodes[self.current_leader].leaders.leaders_logs, int(self.nodes[self.current_leader].node_stats.lastBlockDate.split('.')[0])),
+                int(self.nodes[self.current_leader].node_stats.lastBlockDate.split('.')[0]), self.conf.user_id,
+                self.conf.genesis_hash)
         self.is_in_transition = False
-        # self.blocks_minted_this_epoch = 0
 
     # This method is based on
     # https://github.com/rdlrt/Alternate-Jormungandr-Testnet/blob/master/scripts/jormungandr-leaders-failover.sh
@@ -477,7 +486,6 @@ class JorController:
 
     def start_thread_telegram_notifier(self):
         thread = threading.Thread(target=self.telegram_handler)
-        thread.daemon = True  # Daemonize thread
         thread.start()
 
     def run(self):
