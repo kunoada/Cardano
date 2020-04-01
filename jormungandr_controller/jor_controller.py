@@ -215,7 +215,7 @@ class JorController:
                 if self.is_leaders_logs_not_empty(i):
                     break
                 time.sleep(1)
-                if start_timer + 20 < time.time():
+                if start_timer + 60 < time.time():
                     break
 
     def utc_offset(self, time, offset):
@@ -325,7 +325,7 @@ class JorController:
             # Wait until new epoch
             time.sleep(self.slot_duration + self.conf.TRANSITION_CHECK_INTERVAL - 1)
 
-            self.wait_for_leaders_logs()  # 20 sec timeout loop, if the nodes are not elected for any blocks.
+            self.wait_for_leaders_logs()  # 60 sec timeout loop, if the nodes are not elected for any blocks.
 
             for node in self.nodes:
                 # Delete leaders except one
