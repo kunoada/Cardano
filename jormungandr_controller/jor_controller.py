@@ -262,9 +262,9 @@ class JorController:
             counter += 1
         self.telegram.send_message(msg)
 
-    def sort_leaders_log_to_current_epoch_only(self, log, current_epoch):
+    def sort_leaders_log_to_current_epoch_only(self, logs, current_epoch):
         sorted_log = []
-        for log in log:
+        for log in logs:
             if int(log['scheduled_at_date'][:2]) == current_epoch:
                 sorted_log.append(log)
         return sorted_log
@@ -508,6 +508,7 @@ class JorController:
         # if self.conf.stuck_check_active or self.conf.log_to_file:
         #     self.read_nodes_output()
 
+import hashlib
 
 def main():
     jor_controller = JorController()
