@@ -264,17 +264,19 @@ class JorController:
 
     def sort_leaders_log_to_current_epoch_only(self, logs, current_epoch):
         sorted_log = []
+        # for log in logs:
+        #     if int(log['scheduled_at_date'][:2]) == current_epoch:
         for log in logs:
-            if int(log['scheduled_at_date'][:2]) == current_epoch:
+            if 'Pending' in log['status']:
                 sorted_log.append(log)
         return sorted_log
 
-    def on_new_epoch(self):
+    def on_new_epoch(self, current_epoch):
         self.known_blocks = []
         self.is_new_epoch = True
 
         # Wait some time to make sure that leaders logs are a complete list and force update
-        time.sleep(60)
+        # time.sleep(60)
         for node in self.nodes:
             node.update_leaders_logs()
             if self.conf.telegrambot_active:
@@ -286,9 +288,8 @@ class JorController:
         self.total_blocks_this_epoch = self.blocks_left_this_epoch = self.nodes[self.current_leader].leaders.pending
         if self.conf.send_slots:
             self.pooltool.pooltool_send_slots(
-                self.sort_leaders_log_to_current_epoch_only(self.nodes[self.current_leader].leaders.leaders_logs, int(self.nodes[self.current_leader].node_stats.lastBlockDate.split('.')[0])),
-                int(self.nodes[self.current_leader].node_stats.lastBlockDate.split('.')[0]), self.conf.user_id,
-                self.conf.genesis_hash)
+                self.sort_leaders_log_to_current_epoch_only(self.nodes[self.current_leader].leaders.leaders_logs, current_epoch + 1),
+                current_epoch + 1, self.conf.user_id, self.conf.genesis_hash)
         self.is_in_transition = False
 
     # This method is based on
@@ -316,6 +317,8 @@ class JorController:
             self.is_in_transition = True
             print("Electing all nodes as leaders for epoch transition:")
 
+            current_epoch = int(self.nodes[self.current_leader].node_stats.lastBlockDate.split('.')[0])
+
             for node in self.nodes:
                 # Set all nodes as leader except current leader
                 if not node.unique_id == self.current_leader:
@@ -333,7 +336,7 @@ class JorController:
                     if not node.delete_leader(1):
                         continue
 
-            self.on_new_epoch()
+            self.on_new_epoch(current_epoch)
 
     # Make sure only one node is leader. (only for safety reasons)! This should be done regularly.
     # Though this should never happen.
@@ -508,7 +511,6 @@ class JorController:
         # if self.conf.stuck_check_active or self.conf.log_to_file:
         #     self.read_nodes_output()
 
-import hashlib
 
 def main():
     jor_controller = JorController()
