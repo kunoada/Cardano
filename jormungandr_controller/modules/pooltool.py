@@ -77,6 +77,9 @@ class Pooltool:
             r = requests.post(url=self.url_slots, data=json.dumps(PARAMS))
         except requests.exceptions.RequestException as e:
             print('Something when wrong sending slots!')
+            with open(f'{current_epoch}_send_slot_logs', 'w') as f:
+                f.write('Something when wrong sending slots!')
+            return 'Something when wrong sending slots!'
 
         with open(f'{current_epoch}_send_slot_logs', 'w') as f:
             f.write(r.text)
