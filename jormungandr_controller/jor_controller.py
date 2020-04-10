@@ -293,8 +293,10 @@ class JorController:
         time.sleep(300) # Wait 5 min before sending slots to pooltool
 
         if self.conf.send_slots:
-            self.pooltool.pooltool_send_slots(sorted_leaders_logs, current_epoch + 1,
+            response = self.pooltool.pooltool_send_slots(sorted_leaders_logs, current_epoch + 1,
                                               self.conf.user_id, self.conf.genesis_hash)
+            if self.conf.telegrambot_active:
+                self.telegram.send_message(response)
 
     # This method is based on
     # https://github.com/rdlrt/Alternate-Jormungandr-Testnet/blob/master/scripts/jormungandr-leaders-failover.sh

@@ -79,8 +79,9 @@ class Pooltool:
             print('Something when wrong sending slots!')
 
         with open(f'{current_epoch}_send_slot_logs', 'w') as f:
-            json.dump(f, r.json())
+            f.write(r.text)
         print(r.json())
+        return r.text
         # if os.path.isfile(f'secret/passphrase_{current_epoch - 1}'):
         #     with open(f'secret/passphrase_{current_epoch - 1}', 'r') as last_passphrase:
         #         previous_key = last_passphrase.read()
