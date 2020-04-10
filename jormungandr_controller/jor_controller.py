@@ -288,13 +288,13 @@ class JorController:
 
         self.total_blocks_this_epoch = self.blocks_left_this_epoch = self.nodes[self.current_leader].leaders.pending
         self.is_in_transition = False
+        sorted_leaders_logs = self.sort_leaders_log_to_current_epoch_only(self.nodes[self.current_leader].leaders.leaders_logs, current_epoch + 1)
 
         time.sleep(300) # Wait 5 min before sending slots to pooltool
 
         if self.conf.send_slots:
-            self.pooltool.pooltool_send_slots(
-                self.sort_leaders_log_to_current_epoch_only(self.nodes[self.current_leader].leaders.leaders_logs, current_epoch + 1),
-                current_epoch + 1, self.conf.user_id, self.conf.genesis_hash)
+            self.pooltool.pooltool_send_slots(sorted_leaders_logs, current_epoch + 1,
+                                              self.conf.user_id, self.conf.genesis_hash)
 
     # This method is based on
     # https://github.com/rdlrt/Alternate-Jormungandr-Testnet/blob/master/scripts/jormungandr-leaders-failover.sh
