@@ -54,37 +54,38 @@ class Pooltool:
             self.pooltoolmax = int(data['pooltoolmax'])
 
     def pooltool_send_slots(self, epoch_slots, current_epoch, user_id, genesis):
-        if not os.path.isdir('leaders_logs'):
-            os.makedirs('leaders_logs')
-
-        if os.path.isfile(f'leaders_logs/leader_slots_{current_epoch - 1}'):
-            with open(f'leaders_logs/leader_slots_{current_epoch - 1}', 'r') as last_slots:
-                previous_slots = last_slots.read()
-        else:
-            previous_slots = ''
-
-        if not os.path.isfile(f'leaders_logs/leader_slots_{current_epoch}'):
-            with open(f'leaders_logs/leader_slots_{current_epoch}', 'w') as current_slots:
-                current_slots.write(str(epoch_slots))
-
-        current_hash = hashlib.sha256(str(epoch_slots).encode('utf-8')).hexdigest()
-        assigned = len(epoch_slots)
-
-        PARAMS = {'currentepoch': current_epoch, 'poolid': self.pool_id, 'genesispref': genesis, 'userid': user_id,
-                  'assigned_slots': assigned, 'this_epoch_hash': current_hash, 'last_epoch_slots': previous_slots}
-        try:
-            # sending get request and saving the response as response object
-            r = requests.post(url=self.url_slots, data=json.dumps(PARAMS))
-        except requests.exceptions.RequestException as e:
-            print('Something when wrong sending slots!')
-            with open(f'{current_epoch}_send_slot_logs', 'w') as f:
-                f.write('Something when wrong sending slots!')
-            return 'Something when wrong sending slots!'
-
         with open(f'{current_epoch}_send_slot_logs', 'w') as f:
-            f.write(r.text)
-        print(r.json())
-        return r.text
+
+            if not os.path.isdir('leaders_logs'):
+                os.makedirs('leaders_logs')
+
+            if os.path.isfile(f'leaders_logs/leader_slots_{current_epoch - 1}'):
+                with open(f'leaders_logs/leader_slots_{current_epoch - 1}', 'r') as last_slots:
+                    previous_slots = last_slots.read()
+            else:
+                previous_slots = ''
+            f.write("Writing leaders logs\n")
+            if not os.path.isfile(f'leaders_logs/leader_slots_{current_epoch}'):
+                with open(f'leaders_logs/leader_slots_{current_epoch}', 'w') as current_slots:
+                    current_slots.write(str(epoch_slots))
+            f.write("generating hash for leaders logs\n")
+            current_hash = hashlib.sha256(str(epoch_slots).encode('utf-8')).hexdigest()
+            f.write(f"current hash: {current_hash}\n")
+            assigned = len(epoch_slots)
+            f.write(f"assigned: {assigned}\n")
+
+            PARAMS = {'currentepoch': current_epoch, 'poolid': self.pool_id, 'genesispref': genesis, 'userid': user_id,
+                      'assigned_slots': assigned, 'this_epoch_hash': current_hash, 'last_epoch_slots': previous_slots}
+            f.write(f"sending following parameters to POOLTOOL: {str(PARAMS)}")
+            try:
+                # sending get request and saving the response as response object
+                r = requests.post(url=self.url_slots, data=json.dumps(PARAMS))
+                f.write(r.text)
+            except requests.exceptions.RequestException as e:
+                f.write('Something when wrong sending slots!')
+                return 'Something when wrong sending slots!'
+
+            return r.text
         # if os.path.isfile(f'secret/passphrase_{current_epoch - 1}'):
         #     with open(f'secret/passphrase_{current_epoch - 1}', 'r') as last_passphrase:
         #         previous_key = last_passphrase.read()
