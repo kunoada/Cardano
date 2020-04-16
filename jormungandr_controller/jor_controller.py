@@ -201,21 +201,21 @@ class JorController:
                                            self.nodes[self.current_leader].node_stats.lastBlockHash,
                                            self.nodes[self.current_leader].get_block())
 
-    def is_leaders_logs_not_empty(self, node_number):
-        for field in self.nodes[node_number].leaders.leaders_logs:
-            if 'wake_at_time' in field:
+    def is_leaders_logs_updated(self, node_number):
+        for log in self.nodes[node_number].leaders.leaders_logs:
+            if 'status' in log and 'Pending' in log['status']:
                 return True
         return False
 
     def wait_for_leaders_logs(self):
+        start_timer = time.time()
         for i in range(len(self.nodes)):
-            start_timer = time.time()
             while 1:
                 self.nodes[i].update_leaders_logs()
-                if self.is_leaders_logs_not_empty(i):
+                if self.is_leaders_logs_updated(i):
                     break
-                time.sleep(1)
-                if start_timer + 60 < time.time():
+                time.sleep(5)
+                if start_timer + 240 < time.time(): # Wait up to 4 min
                     break
 
     def utc_offset(self, time, offset):
@@ -334,7 +334,7 @@ class JorController:
             # Wait until new epoch
             time.sleep(self.slot_duration + self.conf.TRANSITION_CHECK_INTERVAL - 1)
 
-            self.wait_for_leaders_logs()  # 60 sec timeout loop, if the nodes are not elected for any blocks.
+            self.wait_for_leaders_logs()  # 300 sec timeout loop, if the nodes are not elected for any blocks.
 
             for node in self.nodes:
                 # Delete leaders except one

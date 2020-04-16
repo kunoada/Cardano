@@ -19,4 +19,7 @@ class TelegramBot:
         return last_message_received
 
     def send_message(self, message):
-        self.bot.sendMessage(chat_id=self.chat_id, text=message)
+        try:
+            self.bot.sendMessage(chat_id=self.chat_id, text=message)
+        except Exception as e:
+            print("Could not set telegram message")

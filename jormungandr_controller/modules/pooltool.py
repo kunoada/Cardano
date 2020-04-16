@@ -64,19 +64,22 @@ class Pooltool:
                     previous_slots = last_slots.read()
             else:
                 previous_slots = ''
+
             f.write("Writing leaders logs\n")
             if not os.path.isfile(f'leaders_logs/leader_slots_{current_epoch}'):
                 with open(f'leaders_logs/leader_slots_{current_epoch}', 'w') as current_slots:
-                    current_slots.write(str(epoch_slots))
+                    current_slots.write(json.dumps(epoch_slots))
+
             f.write("generating hash for leaders logs\n")
-            current_hash = hashlib.sha256(str(epoch_slots).encode('utf-8')).hexdigest()
+            current_hash = hashlib.sha256(json.dumps(epoch_slots).encode('utf-8')).hexdigest()
             f.write(f"current hash: {current_hash}\n")
             assigned = len(epoch_slots)
             f.write(f"assigned: {assigned}\n")
 
             PARAMS = {'currentepoch': current_epoch, 'poolid': self.pool_id, 'genesispref': genesis, 'userid': user_id,
                       'assigned_slots': assigned, 'this_epoch_hash': current_hash, 'last_epoch_slots': previous_slots}
-            f.write(f"sending following parameters to POOLTOOL: {str(PARAMS)}")
+
+            f.write(f"sending following parameters to POOLTOOL: {json.dumps(PARAMS)}")
             try:
                 # sending get request and saving the response as response object
                 r = requests.post(url=self.url_slots, data=json.dumps(PARAMS))
