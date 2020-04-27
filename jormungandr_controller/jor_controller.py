@@ -62,6 +62,10 @@ class JorController:
             x, ip, ip_address, comm_p, port = stakepool_config_temp['p2p']['public_address'].split('/')
             stakepool_config_temp['p2p'][
                 'public_address'] = f'/{ip}/{ip_address}/{comm_p}/{int(port) + node_number}'
+            # Public id
+            if 'public_id' in stakepool_config_temp['p2p']:
+                public_id = int(stakepool_config_temp['p2p']['public_id'], 16) + node_number
+                stakepool_config_temp['p2p']['public_id'] = hex(public_id)[2:]
             if self.conf.use_seperate_storage:
                 storage = stakepool_config_temp['storage']
                 stakepool_config_temp['storage'] = f'{storage}_{node_number}'

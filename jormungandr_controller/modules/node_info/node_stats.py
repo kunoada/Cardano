@@ -26,7 +26,7 @@ class NodeStats:
 
         self.state = node_stats['state']
 
-        if self.state == ('Bootstrapping' or 'PreparingBlock0'):
+        if self.state == 'Bootstrapping' or self.state == 'PreparingBlock0':
             return
 
         self.uptime = node_stats['uptime']
